@@ -125,7 +125,7 @@ int main (int argc, char *argv[]) {
     GLuint bufferTex;
     glGenTextures(1, &bufferTex);
     glBindTexture(GL_TEXTURE_BUFFER, bufferTex);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_R16F, voxelVertBuffer);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, voxelVertBuffer);
 
 
     if (glGetError() != GL_NO_ERROR)
@@ -154,7 +154,6 @@ int main (int argc, char *argv[]) {
         playerCam.Update();
 
 
-        glBindTexture(GL_TEXTURE_BUFFER, bufferTex);
         myShader.use();
         myShader.setFloat("tickingAway", glfwGetTime());
         myShader.setVec3("camPos", playerCam.position);

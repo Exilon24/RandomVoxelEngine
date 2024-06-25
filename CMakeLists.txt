@@ -17,7 +17,7 @@ add_subdirectory(include/glm)
 add_subdirectory(include/glad)
 add_subdirectory(src)
 
-target_link_libraries(MainExec utils glfw glad glm /opt/homebrew/Cellar/assimp/5.3.1/lib/libassimp.dylib)
+target_link_libraries(MainExec utils glfw glad glm)
 
 target_include_directories(MainExec PUBLIC 
 	${PROJECT_SOURCE_DIR}/include 

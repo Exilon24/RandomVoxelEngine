@@ -4,6 +4,8 @@
 #define MAX_STEPS 100
 #define EPSILON 0.001
 
+#define VOXEL_SIZE 1
+
 out vec4 FragColor;
 
 in vec2 TexCoord;
@@ -37,12 +39,24 @@ float sdPlane( vec3 p, vec3 n, float h )
 float map(in vec3 rayPos)
 {
 	float result = 0;
-	vec3 pos = vec3(
-		texelFetch(voxelData, 8).x, 
-		texelFetch(voxelData, 9).x,
-		texelFetch(voxelData, 10).x
-	);
-	return min(Box(rayPos, vec3(0.2), pos), Box(rayPos, vec3(0.2), vec3(0.0)));
+	for (int i = 0; i < 81; i+=3)
+	{
+		vec3 pos = vec3(
+			texelFetch(voxelData, i).x, 
+			texelFetch(voxelData, i+1).x,
+			texelFetch(voxelData, i+2).x
+		);
+
+		if (i == 0)
+		{
+			result = Box(rayPos, vec3(VOXEL_SIZE), pos);
+		}
+		else
+		{
+			result = min(Box(rayPos, vec3(VOXEL_SIZE), pos), result);
+		}
+	}
+	return result;
 }
 
 vec3 getNormal(vec3 p)
@@ -100,7 +114,7 @@ vec3 render(in vec2 uv)
 		if (sdfCheck < EPSILON || distance > MAX_DISTANCE) break;
 	}
 
-	float shadows = shadow(position, normalize(lightPos - position), 1, MAX_DISTANCE, 32);
+	//float shadows = shadow(position, normalize(lightPos - position), 1, MAX_DISTANCE, 32);
 	color = vec3(1.0); //* max(dot(getNormal(position), normalize(lightPos - position)), 0) * shadows;
 	if (distance < 10)
 	{
