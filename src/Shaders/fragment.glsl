@@ -4,13 +4,8 @@
 #define MAX_STEPS 100
 #define EPSILON 0.001
 
-// shapes in raymarch space are twice as large
+// shapes in raymarch space are twice as large (?)
 #define VOXEL_SIZE 0.015625 
-
-vec3 boxSize = vec3(VOXEL_SIZE * 8);
-vec3 boxCenter = boxSize /2;
-vec3 topCorner = boxCenter + boxSize / 2;
-vec3 bottomCorner = boxCenter - boxSize / 2;
 
 out vec4 FragColor;
 
@@ -26,15 +21,8 @@ uniform int voxelCount;
 
 uniform isamplerBuffer voxelData;
 
-
 vec2 resolution = vec2(1920, 1080);
 vec3 lightPos = vec3(sin(tickingAway) * 3, 4, 0);
-
-# define BOUNDINGSIZE 0.5
-float sphere(vec3 rayPos, float radius, vec3 center)
-{
-	return length(rayPos - center) - radius;
-}
 
 float Box(vec3 rayPos, vec3 b, vec3 centre)
 {
@@ -42,21 +30,15 @@ float Box(vec3 rayPos, vec3 b, vec3 centre)
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-float sdPlane( vec3 p, vec3 n, float h )
-{
-  // n must be normalized
-  return dot(p,n) + h;
-}
-
 float map(in vec3 rayPos)
 {
 	float result = 1;
-	return Box(rayPos, vec3(0.3), vec3(0.0));
 	
 	for (int i = 0; i < voxelCount; i++)
 	{
 		if (texelFetch(voxelData, i).x == 1)
 		{
+			// Still figuring out this part out
 			vec3 pos = vec3(
 				(VOXEL_SIZE/ 2) * i,
 				(VOXEL_SIZE/2) * fract(i / 6), 
@@ -75,38 +57,6 @@ float map(in vec3 rayPos)
 	return result;
 }
 
-vec3 getNormal(vec3 p)
-{ 
-    float d = map(p); // Distance
-    vec2 e = vec2(EPSILON,0); // Epsilon
-    vec3 n = d - vec3(
-    map(p-e.xyy),  
-    map(p-e.yxy),
-    map(p-e.yyx));
-   
-    return normalize(n);
-}
-
-
-
-float shadow( in vec3 ro, in vec3 rd ,float minT, float maxT, int k)
-{
-	float res = 1.0;
-	float t = minT;
-
-	// March again
-	for (int i = 0; i < 256 && t<maxT; i++)
-	{
-		float h = map(ro + rd * t);
-		if (h < EPSILON)
-		{
-			return 0.0;
-		}
-		res = min(res, k*h/t);
-		t += h;
-	}
-	return res;
-}
 
 vec3 render(in vec2 uv)
 {
@@ -131,8 +81,7 @@ vec3 render(in vec2 uv)
 		if (sdfCheck < EPSILON || distance > MAX_DISTANCE) break;
 	}
 
-	float shadows = shadow(position, normalize(lightPos - position), 1, MAX_DISTANCE, 32);
-	color = vec3(1.0);// * max(dot(getNormal(position), normalize(lightPos - position)), 0) * shadows;
+	color = vec3(1.0);
 
 	if (distance < 100)
 	{
