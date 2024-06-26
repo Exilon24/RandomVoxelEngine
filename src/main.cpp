@@ -2,6 +2,8 @@
 
 
 #include "camera.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
 #include <glad/glad.h>
@@ -9,6 +11,7 @@
 
 #include <vector>
 #include <window.hpp>
+#include <cstdio>
 #include <shader.hpp>
 #include <camera.hpp>
 
@@ -66,50 +69,79 @@ int main (int argc, char *argv[]) {
     glEnable(GL_DEPTH_TEST);
 
     // INITIALIZE FRAME
-    constexpr float frameVerts[] = 
-        {
-            //positions   texture Coords
-            -1.0f,  1.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f,
-             1.0f, -1.0f, 1.0f, 0.0f,
+    constexpr float cubeVerts[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
-            -1.0f,  1.0f, 0.0f, 1.0f,
-             1.0f, -1.0f, 1.0f, 0.0f,
-             1.0f,  1.0f, 1.0f, 1.0f
-        };
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+};
 
     GLuint VBO,VAO;
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(frameVerts), &frameVerts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), &cubeVerts, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
 
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
         
     // REST OF CODE
     
-    std::vector<float> vertices;
-    float chunk[3][3][3];
-    int cubeSize = 5;
-
-    for (int x = 0; x < 3; x++)
+    std::vector<unsigned char> vertices;
+    for (int x = 0; x < 6; x++)
     {
-        for (int y = 0; y < 3; y++)
+        for (int y = 0; y < 6; y++)
         {
-            for (int z = 0; z < 3; z++)
+            for (int z = 0; z < 6; z++)
             {
-               vertices.push_back(cubeSize * 0.5 * x);
-               vertices.push_back(cubeSize * 0.5 * y);
-               vertices.push_back(cubeSize * 0.5 * z);
+               vertices.push_back(1);
             }
         }
     }
 
+    std::cout << "UCHAR SIZE: " << sizeof(unsigned char) << "\n";
+    std::cout << "Uint8 SIZE: " << sizeof(uint8_t) << "\n";
     std::cout << "VERTEX SIZE: " << vertices.size() << '\n';
 
     Shader myShader = Shader("../src/Shaders/vertex.glsl", "../src/Shaders/fragment.glsl");
@@ -118,14 +150,14 @@ int main (int argc, char *argv[]) {
     GLuint voxelVertBuffer;
     glGenBuffers(1, &voxelVertBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, voxelVertBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), &vertices[0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(unsigned char) * vertices.size(), &vertices[0], GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
     GLuint bufferTex;
     glGenTextures(1, &bufferTex);
     glBindTexture(GL_TEXTURE_BUFFER, bufferTex);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, voxelVertBuffer);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_R8UI, voxelVertBuffer);
 
 
     if (glGetError() != GL_NO_ERROR)
@@ -135,9 +167,14 @@ int main (int argc, char *argv[]) {
 
     // TODO add hasDiff to the material object and add a check for if textures are present; 
     myShader.use();
+    myShader.setInt("voxelCount", vertices.size());
 
     glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
     
+    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.1f, 100.0f);
+    glm::mat4 model = glm::mat4(1.0);
+    glm::mat4 view = glm::mat4(1.0);
+
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
     {
@@ -146,23 +183,26 @@ int main (int argc, char *argv[]) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.4f, 0.4f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-        viewMat = glm::lookAt(playerCam.position, playerCam.position+ camDirection, glm::vec3(0.0,1.0,0.0));
-
+        
         playerCam.Update();
 
-
+        float sf = sin(glfwGetTime()) * 4;
+        
         myShader.use();
         myShader.setFloat("tickingAway", glfwGetTime());
+
+        myShader.setMat4("model", model);
+        myShader.setMat4("perspective", perspective); // Persp
         myShader.setVec3("camPos", playerCam.position);
-        myShader.setMat4("camDirection", playerCam.lookat);
+        myShader.setMat4("camDirection", playerCam.lookat); // View
 
         processInput(myWin.getWindow());
 
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
@@ -197,9 +237,9 @@ void processInput(GLFWwindow* window)
         fullscr = false;    
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        playerCam.position -= playerCam.front * camSpeed;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         playerCam.position += playerCam.front * camSpeed;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        playerCam.position -= playerCam.front * camSpeed;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         playerCam.position += playerCam.right * camSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
@@ -229,8 +269,8 @@ void mouseUpdate(GLFWwindow* window, double xpos, double ypos)
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
-    yaw -= xoffset;
-    pitch -= yoffset;
+    yaw += xoffset;
+    pitch += yoffset;
 
     if (pitch >= 89.9)
         pitch = 89.9;

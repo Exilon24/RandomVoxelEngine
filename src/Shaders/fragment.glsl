@@ -1,24 +1,36 @@
 #version 410 core
 
-#define MAX_DISTANCE 1000 
+#define MAX_DISTANCE 1000
 #define MAX_STEPS 100
 #define EPSILON 0.001
 
-#define VOXEL_SIZE 1
+// shapes in raymarch space are twice as large
+#define VOXEL_SIZE 0.015625 
+
+vec3 boxSize = vec3(VOXEL_SIZE * 8);
+vec3 boxCenter = boxSize /2;
+vec3 topCorner = boxCenter + boxSize / 2;
+vec3 bottomCorner = boxCenter - boxSize / 2;
 
 out vec4 FragColor;
 
 in vec2 TexCoord;
+in vec3 worldPos;
 
 uniform float tickingAway;
 uniform vec3 camPos;
 uniform mat4 camDirection;
+uniform mat4 model;
 
-uniform samplerBuffer voxelData;
+uniform int voxelCount;
+
+uniform isamplerBuffer voxelData;
+
 
 vec2 resolution = vec2(1920, 1080);
-vec3 lightPos = vec3(sin(tickingAway) * 3, 6, 2);
+vec3 lightPos = vec3(sin(tickingAway) * 3, 4, 0);
 
+# define BOUNDINGSIZE 0.5
 float sphere(vec3 rayPos, float radius, vec3 center)
 {
 	return length(rayPos - center) - radius;
@@ -38,24 +50,28 @@ float sdPlane( vec3 p, vec3 n, float h )
 
 float map(in vec3 rayPos)
 {
-	float result = 0;
-	for (int i = 0; i < 81; i+=3)
+	float result = 1;
+	return Box(rayPos, vec3(0.3), vec3(0.0));
+	
+	for (int i = 0; i < voxelCount; i++)
 	{
-		vec3 pos = vec3(
-			texelFetch(voxelData, i).x, 
-			texelFetch(voxelData, i+1).x,
-			texelFetch(voxelData, i+2).x
-		);
-
-		if (i == 0)
+		if (texelFetch(voxelData, i).x == 1)
 		{
-			result = Box(rayPos, vec3(VOXEL_SIZE), pos);
-		}
-		else
-		{
-			result = min(Box(rayPos, vec3(VOXEL_SIZE), pos), result);
+			vec3 pos = vec3(
+				(VOXEL_SIZE/ 2) * i,
+				(VOXEL_SIZE/2) * fract(i / 6), 
+				0) - vec3(0.5);
+			if (i==0)
+			{
+				result = Box(rayPos, vec3(VOXEL_SIZE), pos);
+			}
+			else
+			{
+				result = min(Box(rayPos, vec3(VOXEL_SIZE), pos), result);
+			}
 		}
 	}
+	
 	return result;
 }
 
@@ -94,11 +110,12 @@ float shadow( in vec3 ro, in vec3 rd ,float minT, float maxT, int k)
 
 vec3 render(in vec2 uv)
 {
-	vec3 color = vec3 (0.2);
+	// TODO FACE CULLING
+	vec3 color = vec3 (1.0);
 
 	vec3 projection = vec3(uv.x * 1.6, uv.y,1.); 
 
-	vec3 rd = normalize(projection)* mat3(camDirection);
+	vec3 rd = normalize(worldPos - camPos);
 	vec3 position;
 
 	float distance = 0.0;
@@ -114,13 +131,13 @@ vec3 render(in vec2 uv)
 		if (sdfCheck < EPSILON || distance > MAX_DISTANCE) break;
 	}
 
-	//float shadows = shadow(position, normalize(lightPos - position), 1, MAX_DISTANCE, 32);
-	color = vec3(1.0); //* max(dot(getNormal(position), normalize(lightPos - position)), 0) * shadows;
-	if (distance < 10)
+	float shadows = shadow(position, normalize(lightPos - position), 1, MAX_DISTANCE, 32);
+	color = vec3(1.0);// * max(dot(getNormal(position), normalize(lightPos - position)), 0) * shadows;
+
+	if (distance < 100)
 	{
 		color *= 0;
 	}
-
 	return color;
 }
 
@@ -130,5 +147,5 @@ void main()
 
 	vec3 colr = render(uv);
  
-	FragColor = vec4(colr, 1.0);
+	FragColor =vec4(colr, 1.0);
 }
