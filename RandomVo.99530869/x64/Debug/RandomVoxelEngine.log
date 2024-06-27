@@ -1,0 +1,20 @@
+﻿  glad.c
+  main.cpp
+  camera.cpp
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(25,16): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(29,17): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(170,48): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(192,18): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(195,53): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(263,20): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(264,21): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(265,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(266,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(268,31): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(276,17): warning C4305: '=': truncation from 'double' to 'float'
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\src\main.cpp(278,17): warning C4305: '=': truncation from 'double' to 'float'
+  shader.cpp
+  window.cpp
+  Generating Code...
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  RandomVoxelEngine.vcxproj -> C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\x64\Debug\RandomVoxelEngine.exe

@@ -1,0 +1,22 @@
+﻿main.obj : error LNK2019: unresolved external symbol glfwTerminate referenced in function main
+window.obj : error LNK2001: unresolved external symbol glfwTerminate
+main.obj : error LNK2019: unresolved external symbol glfwGetPrimaryMonitor referenced in function "void __cdecl processInput(struct GLFWwindow *)" (?processInput@@YAXPEAUGLFWwindow@@@Z)
+main.obj : error LNK2019: unresolved external symbol glfwGetVideoMode referenced in function "void __cdecl processInput(struct GLFWwindow *)" (?processInput@@YAXPEAUGLFWwindow@@@Z)
+main.obj : error LNK2019: unresolved external symbol glfwSetWindowShouldClose referenced in function "void __cdecl processInput(struct GLFWwindow *)" (?processInput@@YAXPEAUGLFWwindow@@@Z)
+main.obj : error LNK2019: unresolved external symbol glfwGetWindowMonitor referenced in function "void __cdecl processInput(struct GLFWwindow *)" (?processInput@@YAXPEAUGLFWwindow@@@Z)
+main.obj : error LNK2019: unresolved external symbol glfwSetWindowMonitor referenced in function "void __cdecl processInput(struct GLFWwindow *)" (?processInput@@YAXPEAUGLFWwindow@@@Z)
+main.obj : error LNK2019: unresolved external symbol glfwSetFramebufferSizeCallback referenced in function main
+main.obj : error LNK2019: unresolved external symbol glfwPollEvents referenced in function main
+main.obj : error LNK2019: unresolved external symbol glfwSetInputMode referenced in function main
+main.obj : error LNK2019: unresolved external symbol glfwGetKey referenced in function "void __cdecl processInput(struct GLFWwindow *)" (?processInput@@YAXPEAUGLFWwindow@@@Z)
+main.obj : error LNK2019: unresolved external symbol glfwSetCursorPosCallback referenced in function main
+main.obj : error LNK2019: unresolved external symbol glfwGetTime referenced in function "void __cdecl `dynamic initializer for 'lastFrame''(void)" (??__ElastFrame@@YAXXZ)
+main.obj : error LNK2019: unresolved external symbol glfwSwapBuffers referenced in function main
+main.obj : error LNK2019: unresolved external symbol glfwGetProcAddress referenced in function main
+window.obj : error LNK2019: unresolved external symbol glfwInit referenced in function "public: __cdecl Window::Window(int,int,char const *,struct GLFWmonitor *)" (??0Window@@QEAA@HHPEBDPEAUGLFWmonitor@@@Z)
+window.obj : error LNK2019: unresolved external symbol glfwWindowHint referenced in function "public: __cdecl Window::Window(int,int,char const *,struct GLFWmonitor *)" (??0Window@@QEAA@HHPEBDPEAUGLFWmonitor@@@Z)
+window.obj : error LNK2019: unresolved external symbol glfwCreateWindow referenced in function "public: __cdecl Window::Window(int,int,char const *,struct GLFWmonitor *)" (??0Window@@QEAA@HHPEBDPEAUGLFWmonitor@@@Z)
+window.obj : error LNK2019: unresolved external symbol glfwWindowShouldClose referenced in function "public: int __cdecl Window::getWindowCloseState(void)" (?getWindowCloseState@Window@@QEAAHXZ)
+window.obj : error LNK2019: unresolved external symbol glfwMakeContextCurrent referenced in function "public: void __cdecl Window::makeWindowContextCurrent(void)" (?makeWindowContextCurrent@Window@@QEAAXXZ)
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\lib\GLFW\glfw3.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'ARM64'
+C:\Users\pashaaliabadi\source\repos\RandomVoxelEngine\ARM64\Debug\RandomVoxelEngine.exe : fatal error LNK1120: 19 unresolved externals
