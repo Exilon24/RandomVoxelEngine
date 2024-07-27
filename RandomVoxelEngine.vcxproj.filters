@@ -49,5 +49,8 @@
     <None Include="src\Shaders\vertex.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="src\Shaders\compute.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

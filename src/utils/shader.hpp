@@ -9,13 +9,26 @@
 #include <sstream>
 #include <iostream>
 
+enum class ShaderType
+{
+    Compute,
+    Render
+};
+
 class Shader
 {
 public:
     unsigned int ID;
-	void CompileShader(const char* vertexPath, const char* fragmentPath);
-    Shader(const char* vertexPath, const char* fragmentPath);
-    Shader() = default;
+
+	void SetVertex(const char* path);
+    void SetFragment(const char* path);
+    void SetCompute(const char* path);
+
+    void CompileShader();
+
+    Shader(ShaderType type);
+    Shader(const char* vertex, const char* fragment);
+    Shader(const char* compute);
 
     // activate the shader
     // ------------------------------------------------------------------------
@@ -49,6 +62,10 @@ private:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------
     void checkCompileErrors(GLuint shader, std::string type);
+    std::string readFile(const char* path);
+    ShaderType shaderType;
+
+    GLuint vertex, fragment, compute = 0;
 };
 
 

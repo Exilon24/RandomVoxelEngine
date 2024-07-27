@@ -128,36 +128,21 @@ int main (int argc, char *argv[]) {
         
     // REST OF CODE
     
-    std::vector<unsigned char> vertices;
-    for (int x = 0; x < 6; x++)
+    std::vector<unsigned int> voxels;
+    for (int i = 0; i < 16; i++)
     {
-        for (int y = 0; y < 6; y++)
-        {
-            for (int z = 0; z < 6; z++)
-            {
-               vertices.push_back(1);
-            }
-        }
+        voxels.push_back((unsigned int) 0xffffffff);
     }
 
-    std::cout << "UCHAR SIZE: " << sizeof(unsigned char) << "\n";
-    std::cout << "Uint8 SIZE: " << sizeof(uint8_t) << "\n";
-    std::cout << "VERTEX SIZE: " << vertices.size() << '\n';
 
-    Shader myShader = Shader("../src/Shaders/vertex.glsl", "../src/Shaders/fragment.glsl");
+    GLuint voxelBuffer;
+    glGenBuffers(1, &voxelBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, voxelBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, voxels.size() * sizeof(unsigned int), &voxels[0], GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-    // End of boilerplate
-    GLuint voxelVertBuffer;
-    glGenBuffers(1, &voxelVertBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, voxelVertBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(unsigned char) * vertices.size(), &vertices[0], GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
-    GLuint bufferTex;
-    glGenTextures(1, &bufferTex);
-    glBindTexture(GL_TEXTURE_BUFFER, bufferTex);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_R8UI, voxelVertBuffer);
+    Shader myShader = Shader("../../src/Shaders/vertex.glsl", "../../src/Shaders/fragment.glsl");
 
 
     if (glGetError() != GL_NO_ERROR)
@@ -167,7 +152,7 @@ int main (int argc, char *argv[]) {
 
     // TODO add hasDiff to the material object and add a check for if textures are present; 
     myShader.use();
-    myShader.setInt("voxelCount", vertices.size());
+    myShader.setInt("voxelCount", voxels.size());
 
     glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
     
@@ -187,10 +172,8 @@ int main (int argc, char *argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
         
-        playerCam.Update();
+        playerCam.Update(); 
 
-        float sf = sin(glfwGetTime()) * 4;
-        
         myShader.use();
         myShader.setFloat("tickingAway", glfwGetTime());
 
