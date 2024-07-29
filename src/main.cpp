@@ -68,70 +68,74 @@ int main (int argc, char *argv[]) {
 
     glEnable(GL_DEPTH_TEST);
 
-    // INITIALIZE FRAME
-    constexpr float cubeVerts[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    constexpr float cubeVerts[] = 
+    {
+    1.0f, 1.0f, 1.0f,       //1.0f, 1.0f, 1.0f, //111 -- 0
+    -1.0f, 1.0f, 1.0f,      //0.0f, 1.0f, 1.0f, //011 -- 1
+    -1.0f, 1.0f, -1.0f,     //0.0f, 1.0f, 0.0f, //010 -- 2
+    1.0f, 1.0f, -1.0f,      //1.0f, 1.0f, 0.0f, //110 -- 3
 
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    -1.0f, -1.0f, 1.0f,     //0.0f, 0.0f, 1.0f, //001 -- 4
+    -1.0f, -1.0f, -1.0f,    //0.0f, 0.0f, 0.0f, //000 -- 5
+    1.0f, -1.0f, -1.0f,     //1.0f, 0.0f, 0.0f, //100 -- 6
+    1.0f, -1.0f, 1.0f,      //1.0f, 0.0f, 1.0f  //101 -- 7
 };
 
-    GLuint VBO,VAO;
+    constexpr GLuint indices[] =
+    {
+        // Top
+        0, 1, 2,
+        2, 3, 0,
+
+        // front
+        3, 2, 5,
+        5, 6, 3,
+
+        // right
+        7, 0, 3,
+        3, 6, 7,
+
+        // back
+        4, 1, 0,
+        0, 7, 4,
+
+        // left
+        5, 2, 1, 
+        1, 4, 5,
+
+        // bottom
+        4, 7, 6,
+        6, 5, 4
+    };
+
+    GLuint VBO,VAO,EBO;
+
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &EBO);
+
     glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), &cubeVerts, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
 
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    //glEnableVertexAttribArray(1);
+    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
         
     // REST OF CODE
     
+    // 512 total voxels
+    // 8x8x8
     std::vector<unsigned int> voxels;
     for (int i = 0; i < 16; i++)
     {
-        voxels.push_back((unsigned int) 0xffffffff);
+        voxels.push_back((unsigned int) 0x55555555);
     }
 
 
@@ -154,9 +158,13 @@ int main (int argc, char *argv[]) {
     myShader.use();
     myShader.setInt("voxelCount", voxels.size());
 
-    glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
+    glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
     
-    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.1f, 100.0f);
+    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 100.0f);
     glm::mat4 model = glm::mat4(1.0);
     glm::mat4 view = glm::mat4(1.0);
 
@@ -180,12 +188,13 @@ int main (int argc, char *argv[]) {
         myShader.setMat4("model", model);
         myShader.setMat4("perspective", perspective); // Persp
         myShader.setVec3("camPos", playerCam.position);
-        myShader.setMat4("camDirection", playerCam.lookat); // View
+        myShader.setMat4("view", playerCam.lookat); // View
 
         processInput(myWin.getWindow());
 
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
