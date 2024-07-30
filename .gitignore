@@ -43,3 +43,7 @@
 **CTestTestfile.cmake
 **_deps
 **CMakeUserPresets.json
+
+[Bb]in/
+
+.vs/
