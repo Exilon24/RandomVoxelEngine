@@ -190,6 +190,9 @@ int main (int argc, char *argv[]) {
         myShader.setVec3("camPos", playerCam.position);
         myShader.setMat4("view", playerCam.lookat); // View
 
+        myShader.setMat4("iViewMat", glm::inverse(playerCam.lookat));
+        myShader.setMat4("iProjMat", glm::inverse(perspective));
+
         processInput(myWin.getWindow());
 
         glBindVertexArray(VAO);
