@@ -22,7 +22,7 @@
 int screenHeight = 1920;
 int screenWidth = 1080;
 
-float camSpeed = 0.02;
+float camSpeed = 0.2;
 // ----------------------------------------------
 
 float deltaTime = 1;
@@ -160,12 +160,13 @@ int main (int argc, char *argv[]) {
 
     glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
+    //glEnable(GL_CULL_FACE);
+    //glCullFace(GL_FRONT);
+    //glFrontFace(GL_CW);
     
     glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 100.0f);
     glm::mat4 model = glm::mat4(1.0);
+    model = glm::scale(model, glm::vec3(8));
     glm::mat4 view = glm::mat4(1.0);
 
     std::cout << "Starting program loop...\n";

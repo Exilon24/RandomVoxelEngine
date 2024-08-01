@@ -16,7 +16,8 @@ layout(std430, binding = 0) buffer voxelData
 out vec4 FragColor;
 
 in vec3 CubeUv;
-in vec3 worldPos;
+in vec3 cubeMin;
+in vec3 cubeMax;
 
 uniform float tickingAway;
 uniform vec3 camPos;
@@ -27,7 +28,6 @@ uniform mat4 iProjMat;
 uniform mat4 iViewMat;
 
 uniform int voxelCount;
-
 
 vec2 resolution = vec2(1920, 1080);
 
@@ -57,27 +57,67 @@ vec3 render(in vec3 uv)
 	vec3 v = getRayDir(iViewMat ,iProjMat);
 	float t = 0;
 
-	vec3 startVoxelCoord = uv * 8;
+	vec3 rayPos = u + v * t;
+
+	uvec3 startVoxelCoord = uvec3(uv * 8);
 
 	int stepX, stepY, stepZ;
-	float tMaxX, tMaxY, tMaxZ; // ??
+	float tMaxX, tMaxY, tMaxZ, tMinX, tMinY, tMinZ; // ??
 	float tDeltaX, tDeltaY, tDeltaZ; // ??
 
-	tDeltaX = GRID_CELL_SIZE / (v.x - u.x);
-	tMaxX = tDeltaX * (1.0 - fract(u.x / GRID_CELL_SIZE));
+	// Initialize step
+	if (v.x > 0) stepX = 1;
+	else if (v.x < 0) stepX = -1;
+	else stepX = 0;
 
-	tDeltaY = GRID_CELL_SIZE / (v.y - u.y);
-	tMaxY = tDeltaY * (1.0 - fract(u.y / GRID_CELL_SIZE));
+	if (v.y > 0) stepY = 1;
+	else if (v.y < 0) stepY = -1;
+	else stepY = 0;
 
-	tDeltaZ = GRID_CELL_SIZE / (v.z - u.z);
-	tMaxZ = tDeltaZ * (1.0 - fract(u.z / GRID_CELL_SIZE));
+	if (v.z > 0) stepZ = 1;
+	else if (v.z < 0) stepZ = -1;
+	else stepZ = 0;
 
-	stepX = int(floor(v.x / abs(v.x)));
-	stepY = int(floor(v.y / abs(v.y)));
-	stepZ = int(floor(v.z / abs(v.z)));
+	// Calculate ray intersect with box
+	tMinX = (cubeMin.x - u.x) / v.x;
+	tMaxX = (cubeMax.x - u.x) / v.x;
 
-	vec3 color = vec3(stepX, stepY, stepZ) * 0.5 + 0.5;
-	
+	tMinY = (cubeMin.y - u.y) / v.y;
+	tMaxY = (cubeMax.y - u.y) / v.y;
+
+	tMinZ = (cubeMin.z - u.z) / v.z;
+	tMaxZ = (cubeMax.z - u.z) / v.z;
+
+	float tMin = max(
+	max( 
+            min(tMinX, tMaxX), 
+            min(tMinY, tMaxY) 
+          ), 
+          min(tMinZ, tMaxZ)
+        );
+
+	float tMax = min( 
+          min(
+            max(tMinX, tMaxX),
+            max(tMinY, tMaxY)
+          ), 
+          max(tMinZ, tMaxZ)
+        );
+
+	if (tMax > 0 && tMin < tMax)
+	{
+		if (tMin < 0)
+		{
+			t = tMax;
+		}
+		else
+		{
+			t = tMin;
+		}
+	}
+
+	vec3 color = u + v * t;
+
 	return color;
 }
 
