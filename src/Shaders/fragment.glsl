@@ -49,44 +49,41 @@ uint indexVoxels(uvec3 voxel_i)
 	return voxel_bit;
 }
 
-vec3 render(in vec3 uv)
+vec3 render(vec3 uv)
 {
 
-	// Raycast towards cube
-	vec3 u = camPos;
-	vec3 v = getRayDir(iViewMat ,iProjMat);
+	vec3 rayDirection = getRayDir(iViewMat ,iProjMat);
 	float t = 0;
 
-	vec3 rayPos = u + v * t;
+	uvec3 startVoxelCoord = uvec3(uv * 7);
 
-	uvec3 startVoxelCoord = uvec3(uv * 8);
+	// AABB test
 
 	int stepX, stepY, stepZ;
-	float tMaxX, tMaxY, tMaxZ, tMinX, tMinY, tMinZ; // ??
-	float tDeltaX, tDeltaY, tDeltaZ; // ??
+	float tMaxX, tMaxY, tMaxZ, tMinX, tMinY, tMinZ;
 
-	// Initialize step
-	if (v.x > 0) stepX = 1;
-	else if (v.x < 0) stepX = -1;
+	// Initialize step direction
+	if (rayDirection.x > 0) stepX = 1;
+	else if (rayDirection.x < 0) stepX = -1;
 	else stepX = 0;
 
-	if (v.y > 0) stepY = 1;
-	else if (v.y < 0) stepY = -1;
+	if (rayDirection.y > 0) stepY = 1;
+	else if (rayDirection.y < 0) stepY = -1;
 	else stepY = 0;
 
-	if (v.z > 0) stepZ = 1;
-	else if (v.z < 0) stepZ = -1;
+	if (rayDirection.z > 0) stepZ = 1;
+	else if (rayDirection.z < 0) stepZ = -1;
 	else stepZ = 0;
 
-	// Calculate ray intersect with box
-	tMinX = (cubeMin.x - u.x) / v.x;
-	tMaxX = (cubeMax.x - u.x) / v.x;
+	// Calculate the T values
+	tMinX = (cubeMin.x - camPos.x) / rayDirection.x;
+	tMaxX = (cubeMax.x - camPos.x) / rayDirection.x;
 
-	tMinY = (cubeMin.y - u.y) / v.y;
-	tMaxY = (cubeMax.y - u.y) / v.y;
+	tMinY = (cubeMin.y - camPos.y) / rayDirection.y;
+	tMaxY = (cubeMax.y - camPos.y) / rayDirection.y;
 
-	tMinZ = (cubeMin.z - u.z) / v.z;
-	tMaxZ = (cubeMax.z - u.z) / v.z;
+	tMinZ = (cubeMin.z - camPos.z) / rayDirection.z;
+	tMaxZ = (cubeMax.z - camPos.z) / rayDirection.z;
 
 	float tMin = max(
 	max( 
@@ -108,16 +105,18 @@ vec3 render(in vec3 uv)
 	{
 		if (tMin < 0)
 		{
-			t = tMax;
+			t *= tMax;
 		}
 		else
 		{
-			t = tMin;
+			t *= tMin;
 		}
 	}
 
-	vec3 color = u + v * t;
+	// Find the point where the ray intersects with the cube
+	vec3 rayOrigin = camPos + rayDirection * t;
 
+	vec3 color = rayOrigin;
 	return color;
 }
 
