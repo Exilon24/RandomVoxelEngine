@@ -60,7 +60,6 @@ vec3 render(vec3 uv)
 	// AABB test
 
 	int stepX, stepY, stepZ;
-	float tMaxX, tMaxY, tMaxZ, tMinX, tMinY, tMinZ;
 
 	// Initialize step direction
 	if (rayDirection.x > 0) stepX = 1;
@@ -76,42 +75,18 @@ vec3 render(vec3 uv)
 	else stepZ = 0;
 
 	// Calculate the T values
-	tMinX = (cubeMin.x - camPos.x) / rayDirection.x;
-	tMaxX = (cubeMax.x - camPos.x) / rayDirection.x;
+	vec3 tMin = (cubeMin - camPos) / rayDirection;
+	vec3 tMax = (cubeMax - camPos ) / rayDirection;
 
-	tMinY = (cubeMin.y - camPos.y) / rayDirection.y;
-	tMaxY = (cubeMax.y - camPos.y) / rayDirection.y;
+	vec3 t1 = min(tMin, tMax);
+	vec3 t2 = max(tMin, tMax);
 
-	tMinZ = (cubeMin.z - camPos.z) / rayDirection.z;
-	tMaxZ = (cubeMax.z - camPos.z) / rayDirection.z;
-
-	float tMin = max(
-	max( 
-            min(tMinX, tMaxX), 
-            min(tMinY, tMaxY) 
-          ), 
-          min(tMinZ, tMaxZ)
-        );
-
-	float tMax = min( 
-          min(
-            max(tMinX, tMaxX),
-            max(tMinY, tMaxY)
-          ), 
-          max(tMinZ, tMaxZ)
-        );
-
-	if (tMax > 0 && tMin < tMax)
-	{
-		if (tMin < 0)
-		{
-			t = tMax;
-		}
-		else
-		{
-			t = tMin;
-		}
-	}
+	float tNear = max(max(t1.x, t1.y), t1.z);
+	float tFar = min(min(t2.x, t2.y), t2.z);
+    
+    if (tNear <= tFar && tFar > 0.0) {
+		t = tNear;
+    }
 
 	// Find the point where the ray intersects with the cube
 	vec3 rayOrigin = camPos + rayDirection * t;
