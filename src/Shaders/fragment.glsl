@@ -105,11 +105,11 @@ vec3 render(vec3 uv)
 	{
 		if (tMin < 0)
 		{
-			t *= tMax;
+			t = tMax;
 		}
 		else
 		{
-			t *= tMin;
+			t = tMin;
 		}
 	}
 
