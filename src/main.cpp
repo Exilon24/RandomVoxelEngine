@@ -5,6 +5,7 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
+#include "glm/gtx/string_cast.hpp"
 #include "glm/geometric.hpp"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -70,15 +71,15 @@ int main (int argc, char *argv[]) {
 
     constexpr float cubeVerts[] = 
     {
-    1.0f, 1.0f, 1.0f,       //1.0f, 1.0f, 1.0f, //111 -- 0
-    -1.0f, 1.0f, 1.0f,      //0.0f, 1.0f, 1.0f, //011 -- 1
-    -1.0f, 1.0f, -1.0f,     //0.0f, 1.0f, 0.0f, //010 -- 2
-    1.0f, 1.0f, -1.0f,      //1.0f, 1.0f, 0.0f, //110 -- 3
+    0.5f, 0.5f, 0.5f,      //111 -- 0
+    -0.5f, 0.5f, 0.5f,     //011 -- 1
+    -0.5f, 0.5f, -0.5f,    //010 -- 2
+    0.5f, 0.5f, -0.5f,     //110 -- 3
 
-    -1.0f, -1.0f, 1.0f,     //0.0f, 0.0f, 1.0f, //001 -- 4
-    -1.0f, -1.0f, -1.0f,    //0.0f, 0.0f, 0.0f, //000 -- 5
-    1.0f, -1.0f, -1.0f,     //1.0f, 0.0f, 0.0f, //100 -- 6
-    1.0f, -1.0f, 1.0f,      //1.0f, 0.0f, 1.0f  //101 -- 7
+    -0.5f, -0.5f, 0.5f,    //001 -- 4
+    -0.5f, -0.5f, -0.5f,   //000 -- 5
+    0.5f, -0.5f, -0.5f,    //100 -- 6
+    0.5f, -0.5f, 0.5f,     //101 -- 7
 };
 
     constexpr GLuint indices[] =
@@ -167,7 +168,6 @@ int main (int argc, char *argv[]) {
     glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 100.0f);
     glm::mat4 model = glm::mat4(1.0);
     model = glm::scale(model, glm::vec3(8));
-    glm::mat4 view = glm::mat4(1.0);
 
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
@@ -193,6 +193,8 @@ int main (int argc, char *argv[]) {
 
         myShader.setMat4("iViewMat", glm::inverse(playerCam.lookat));
         myShader.setMat4("iProjMat", glm::inverse(perspective));
+     
+        myShader.setMat4("iMatTransform", glm::inverse(perspective * playerCam.lookat * model));
 
         processInput(myWin.getWindow());
 

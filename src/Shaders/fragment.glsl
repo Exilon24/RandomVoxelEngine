@@ -19,26 +19,18 @@ in vec3 CubeUv;
 in vec3 cubeMin;
 in vec3 cubeMax;
 
+in vec3 vertWorldPos;
+
 uniform float tickingAway;
 uniform vec3 camPos;
-uniform mat4 camDirection;
-uniform mat4 model;
 
 uniform mat4 iProjMat;
 uniform mat4 iViewMat;
+uniform mat4 iMatTransform;
 
 uniform int voxelCount;
 
 vec2 resolution = vec2(1920, 1080);
-
-vec3 getRayDir(mat4 IViewMatrix, mat4 IProjectionMatrix)
-{
-	vec2 uv = (2.0 * gl_FragCoord.xy / resolution - 1);
-	vec4 rayEye = IProjectionMatrix * vec4(uv.x, uv.y, -1, 1);
-	rayEye.z = -1;
-	rayEye.w = 0;
-	return(normalize(IViewMatrix * rayEye).xyz);
-}
 
 uint indexVoxels(uvec3 voxel_i)
 {
@@ -51,13 +43,11 @@ uint indexVoxels(uvec3 voxel_i)
 
 vec3 render(vec3 uv)
 {
+	vec3 rayOrigin = uv * 8;
+	uvec3 startingVoxel = uvec3(min(uv * 8, 7));
 
-	vec3 rayDirection = getRayDir(iViewMat ,iProjMat);
+	vec3 rayDirection = normalize(vertWorldPos - camPos);
 	float t = 0;
-
-	uvec3 startVoxelCoord = uvec3(uv * 7);
-
-	// AABB test
 
 	int stepX, stepY, stepZ;
 
@@ -74,30 +64,13 @@ vec3 render(vec3 uv)
 	else if (rayDirection.z < 0) stepZ = -1;
 	else stepZ = 0;
 
-	// Calculate the T values
-	vec3 tMin = (cubeMin - camPos) / rayDirection;
-	vec3 tMax = (cubeMax - camPos ) / rayDirection;
-
-	vec3 t1 = min(tMin, tMax);
-	vec3 t2 = max(tMin, tMax);
-
-	float tNear = max(max(t1.x, t1.y), t1.z);
-	float tFar = min(min(t2.x, t2.y), t2.z);
-    
-    if (tNear <= tFar && tFar > 0.0) {
-		t = tNear;
-    }
-
-	// Find the point where the ray intersects with the cube
-	vec3 rayOrigin = camPos + rayDirection * t;
-
-	vec3 color = rayOrigin;
+	vec3 color = rayDirection; 
 	return color;
 }
 
 void main()
 {
-	vec3 uv = (CubeUv);
+	vec3 uv = CubeUv;
 
 	vec3 colr = render(uv);
 	FragColor = vec4(colr, 1.0);

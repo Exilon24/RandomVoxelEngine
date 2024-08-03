@@ -6,6 +6,8 @@ out vec3 CubeUv;
 out vec3 cubeMin;
 out vec3 cubeMax;
 
+out vec3 vertWorldPos;
+
 uniform mat4 perspective;
 uniform mat4 view;
 uniform mat4 model;
@@ -13,6 +15,8 @@ uniform mat4 model;
 void main()
 {
 	CubeUv = aPos * 0.5 + 0.5;
+	vertWorldPos = (model * vec4(aPos, 1)).xyz;
+
 
 	// find min and max
 	if (CubeUv == vec3(0.0)) cubeMin = aPos;
