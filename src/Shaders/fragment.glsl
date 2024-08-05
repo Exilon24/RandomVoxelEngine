@@ -48,22 +48,24 @@ uint indexVoxels(uvec3 voxel_i)
 
 vec3 render(vec3 uv)
 {
-	vec3 rayOrigin = uv * 8 + 0.00001;
-	uvec3 currentVoxel = uvec3(min(uv * 8 + 0.0001, 7));
-
 	vec3 rayDirection = normalize(vertWorldPos - camPos);
+	uvec3 currentVoxel = uvec3(min((uv * 8) + rayDirection * 0.0001, 7)) ;
+	vec3 rayOrigin = uv * 8;
+
 	float t = 0;
 
-	uvec3 stepC = uvec3(sign(rayDirection));
-	vec3 rdinv = 1/ rayDirection;
-	vec3 delta = min(rdinv * stepC, 1.0);
+	ivec3 stepC = ivec3(sign(rayDirection));
+	vec3 rdinv = 1.0/ rayDirection;
+	vec3 delta = min(rdinv * stepC, 8.0);
 	vec3 tMax = abs((currentVoxel + max(stepC, vec3(0.0)) - rayOrigin) * rdinv);
+
+	//return tMax;
 
 	for (int i = 0; i < 20; ++i) // Will change this to a more appropriate loop later
 	{
 		if (tMax.x < tMax.y)
 		{
-			if (tMax.x > tMax.z)
+			if (tMax.x < tMax.z)
 			{
 				tMax.x += delta.x;
 				currentVoxel.x += stepC.x;
@@ -76,7 +78,7 @@ vec3 render(vec3 uv)
 		}
 		else 
 		{
-			if (tMaxY < tMaxZ)
+			if (tMax.y < tMax.z)
 			{
 				tMax.y += delta.y;
 				currentVoxel.y += stepC.y;

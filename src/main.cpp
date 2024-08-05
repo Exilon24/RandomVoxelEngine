@@ -199,7 +199,6 @@ int main (int argc, char *argv[]) {
         processInput(myWin.getWindow());
 
         glBindVertexArray(VAO);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         
         glfwSwapBuffers(myWin.getWindow());
