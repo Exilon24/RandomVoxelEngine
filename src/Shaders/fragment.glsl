@@ -55,7 +55,6 @@ vec3 render(vec3 uv)
 	float t = 0;
 
 	uvec3 stepC = uvec3(sign(rayDirection));
-	float tMaxX, tMaxY, tMaxZ;
 	vec3 rdinv = 1/ rayDirection;
 	vec3 delta = min(rdinv * stepC, 1.0);
 	vec3 tMax = abs((currentVoxel + max(stepC, vec3(0.0)) - rayOrigin) * rdinv);
