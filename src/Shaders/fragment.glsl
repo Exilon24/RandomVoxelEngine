@@ -56,29 +56,6 @@ vec3 render(vec3 uv)
 
 	uvec3 stepC = uvec3(sign(rayDirection));
 	float tMaxX, tMaxY, tMaxZ;
-
-//  Initialize step direction
-//	stepX = int(sign(rayDirection.x));
-//	stepY = int(sign(rayDirection.y));
-//	stepZ = int(sign(rayDirection.z));
-
-	// initialize tMax
-
-//	float DX = rayDirection.x - rayOrigin.x;
-//	float tDeltaX = GRID_CELL_SIZE / DX;
-//	if (rayOrigin.x >= 0) tMaxX = tDeltaX * (1.0 - fract(rayOrigin.x / GRID_CELL_SIZE));
-//	else tMaxX = tDeltaX * (1.0 - ufract(rayOrigin.x / GRID_CELL_SIZE));
-//	
-//	float DY = rayDirection.y - rayOrigin.y;
-//	float tDeltaY = GRID_CELL_SIZE / DY;
-//	if (rayOrigin.y >= 0) tMaxY = tDeltaY * (1.0 - fract(rayOrigin.y / GRID_CELL_SIZE));
-//	else tMaxY = tDeltaY * (1.0 - ufract(rayOrigin.y / GRID_CELL_SIZE));
-//
-//	float DZ = rayDirection.z - rayOrigin.z;
-//	float tDeltaZ = GRID_CELL_SIZE / DZ;
-//	if (rayOrigin.z >= 0) tMaxZ = tDeltaZ * (1.0 - fract(rayOrigin.z / GRID_CELL_SIZE));
-//	else tMaxZ = tDeltaZ * (1.0 - ufract(rayOrigin.z / GRID_CELL_SIZE));
-
 	vec3 rdinv = 1/ rayDirection;
 	vec3 delta = min(rdinv * stepC, 1.0);
 	vec3 tMax = abs((currentVoxel + max(stepC, vec3(0.0)) - rayOrigin) * rdinv);
