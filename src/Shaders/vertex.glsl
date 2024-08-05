@@ -14,7 +14,7 @@ uniform mat4 model;
 
 void main()
 {
-	CubeUv = aPos * 0.5 + 0.5;
+	CubeUv = aPos * 0.5 + 0.25;
 	vertWorldPos = (model * vec4(aPos, 1)).xyz;
 
 
