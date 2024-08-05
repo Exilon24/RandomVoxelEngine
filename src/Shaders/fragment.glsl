@@ -37,7 +37,7 @@ float ufract(float x)
 	return (1 - x + floor(x));
 }
 
-uint indexVoxels(uvec3 voxel_i)
+uint indexVoxels(ivec3 voxel_i)
 {
 	uint voxel_index = voxel_i.x + voxel_i.z * BRICK_SIZE + voxel_i.y * BRICK_SIZE * BRICK_SIZE;
 	uint word_index = voxel_index / 32;
@@ -46,34 +46,50 @@ uint indexVoxels(uvec3 voxel_i)
 	return voxel_bit;
 }
 
-vec3 render(vec3 uv)
+vec3 render()
 {
 	vec3 rayDirection = normalize(vertWorldPos - camPos);
-	uvec3 currentVoxel = uvec3(min((uv * 8) + rayDirection * 0.0001, 7)) ;
-	vec3 rayOrigin = uv * 8;
+
+	///////////////////////////////////////////////////////////////////////////////////
+	// For the love of god and all holy use floats instead of intergers for division //
+	///////////////////////////////////////////////////////////////////////////////////
+	ivec3 currentVoxel = ivec3(min(floor((CubeUv * 8.0) + rayDirection * 0.0001),vec3(7.999))) ;
+	vec3 rayOrigin = CubeUv * 8.0;
 
 	float t = 0;
 
-	ivec3 stepC = ivec3(sign(rayDirection));
-	vec3 rdinv = 1.0/ rayDirection;
-	vec3 delta = min(rdinv * stepC, 8.0);
-	vec3 tMax = abs((currentVoxel + max(stepC, vec3(0.0)) - rayOrigin) * rdinv);
+	// Floating point and integer representation of the ray's direction as a sign (1, -1, 0)
+	vec3 signrd = sign(rayDirection);
+    ivec3 rayStep = ivec3(signrd + 0.);
 
-	//return tMax;
 
-	for (int i = 0; i < 20; ++i) // Will change this to a more appropriate loop later
+	vec3 rdinv = 1.0 / rayDirection;
+	vec3 delta = rdinv * signrd;
+	vec3 tMax = abs((currentVoxel + max(signrd, vec3(0.0)) - rayOrigin) * rdinv);
+
+	for (int i = 0; i < 20; i++) // Will change this to a more appropriate loop later
 	{
+		
+		// If ray escapes voxel
+ 		if(any(greaterThan(currentVoxel,vec3(7))) || any(lessThan(currentVoxel,vec3(0)))) break;
+
+		// Check if starting voxel is set
+		if (indexVoxels(currentVoxel) == 1) return vec3(currentVoxel / 8.0);
+
+
+
 		if (tMax.x < tMax.y)
 		{
 			if (tMax.x < tMax.z)
 			{
 				tMax.x += delta.x;
-				currentVoxel.x += stepC.x;
+				currentVoxel.x += rayStep.x;
+
 			}
 			else
 			{
 				tMax.z += delta.z;
-				currentVoxel.z += stepC.z;
+				currentVoxel.z += rayStep.z;
 			}
 		}
 		else 
@@ -81,16 +97,15 @@ vec3 render(vec3 uv)
 			if (tMax.y < tMax.z)
 			{
 				tMax.y += delta.y;
-				currentVoxel.y += stepC.y;
+				currentVoxel.y += rayStep.y;
 			}
 			else
 			{
 				tMax.z += delta.z;
-				currentVoxel.z += stepC.z;
+				currentVoxel.z += rayStep.z;
 			}
 		}
 
-		if (indexVoxels(currentVoxel) == 1) return vec3(uv);
 	}
 
 	discard;
@@ -99,8 +114,6 @@ vec3 render(vec3 uv)
 
 void main()
 {
-	vec3 uv = CubeUv;
-
-	vec3 colr = render(uv);
-	FragColor = vec4(colr, 1.0);
+	vec3 color = render();
+	FragColor = vec4(color, 1.0);
 }

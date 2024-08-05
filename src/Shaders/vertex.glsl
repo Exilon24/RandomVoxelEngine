@@ -14,13 +14,8 @@ uniform mat4 model;
 
 void main()
 {
-	CubeUv = aPos * 0.5 + 0.25;
-	vertWorldPos = (model * vec4(aPos, 1)).xyz;
+CubeUv = aPos;
+vertWorldPos = (model * vec4(aPos, 1)).xyz;
 
-
-	// find min and max
-	if (CubeUv == vec3(0.0)) cubeMin = aPos;
-	else if (CubeUv == vec3(1.0)) cubeMax = aPos;
-
-	gl_Position = perspective * view * model * vec4(aPos, 1.0);
+gl_Position = perspective * view * model * vec4(aPos, 1.0);
 }

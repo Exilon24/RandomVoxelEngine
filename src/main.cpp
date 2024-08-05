@@ -1,6 +1,3 @@
-// TODO: Use bounding boxes and raymarch inside them. Cull unseen boxes. 
-
-
 #include "camera.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
@@ -34,24 +31,24 @@ float xoffset;
 float yoffset;
 
 float pitch, yaw;
-float lastX = static_cast<float>(screenWidth / 2), lastY = static_cast<float>( screenHeight/ 2);
+float lastX = static_cast<float>(screenWidth / 2), lastY = static_cast<float>(screenHeight / 2);
 
 bool fullscr = false;
 
 void processInput(GLFWwindow* window);
 void viewportSizeChanged(GLFWwindow* window, int width, int height);
 void mouseUpdate(GLFWwindow* window, double xpos, double ypos);
-    
+
 Camera playerCam;
 glm::vec3 camDirection;
 glm::mat3 viewMat;
 
-int main (int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 
     // Create window
     Window myWin = Window(600, 620, "Awesome sauce");
     myWin.makeWindowContextCurrent();
-    
+
     std::cout << "Loading glad...\n";
     // Load glad function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -65,22 +62,22 @@ int main (int argc, char *argv[]) {
     }
     // Set callbacks
     glfwSetFramebufferSizeCallback(myWin.getWindow(), viewportSizeChanged);
-    glfwSetCursorPosCallback(myWin.getWindow(), mouseUpdate);  
+    glfwSetCursorPosCallback(myWin.getWindow(), mouseUpdate);
 
     glEnable(GL_DEPTH_TEST);
 
-    constexpr float cubeVerts[] = 
+    constexpr float cubeVerts[] =
     {
-    0.5f, 0.5f, 0.5f,      //111 -- 0
-    -0.5f, 0.5f, 0.5f,     //011 -- 1
-    -0.5f, 0.5f, -0.5f,    //010 -- 2
-    0.5f, 0.5f, -0.5f,     //110 -- 3
+    0.0f, 0.0f, 0.0f,      //111 -- 0
+    1.0f, 0.0f, 0.0f,     //011 -- 1
+    1.0f, 0.0f, 1.0f,    //010 -- 2
+    0.0f, 0.0f, 1.0f,     //110 -- 3
 
-    -0.5f, -0.5f, 0.5f,    //001 -- 4
-    -0.5f, -0.5f, -0.5f,   //000 -- 5
-    0.5f, -0.5f, -0.5f,    //100 -- 6
-    0.5f, -0.5f, 0.5f,     //101 -- 7
-};
+    1.0f, 1.0f, 0.0f,    //001 -- 4
+    1.0f, 1.0f, 1.0f,   //000 -- 5
+    0.0f, 1.0f, 1.0f,    //100 -- 6
+    0.0f, 1.0f, 0.0f,     //101 -- 7
+    };
 
     constexpr GLuint indices[] =
     {
@@ -101,7 +98,7 @@ int main (int argc, char *argv[]) {
         0, 7, 4,
 
         // left
-        5, 2, 1, 
+        5, 2, 1,
         1, 4, 5,
 
         // bottom
@@ -109,7 +106,7 @@ int main (int argc, char *argv[]) {
         6, 5, 4
     };
 
-    GLuint VBO,VAO,EBO;
+    GLuint VBO, VAO, EBO;
 
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
@@ -124,19 +121,27 @@ int main (int argc, char *argv[]) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), &cubeVerts, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
     //glEnableVertexAttribArray(1);
     //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-        
+
     // REST OF CODE
-    
+
     // 512 total voxels
     // 8x8x8
     std::vector<unsigned int> voxels;
     for (int i = 0; i < 16; i++)
     {
-        voxels.push_back((unsigned int) 0x55555555);
+        if (i % 2 == 0)
+        {
+            voxels.push_back((unsigned int)0x55555555);
+        }
+        else
+        {
+            voxels.push_back((unsigned int)0xAAAAAAAA);
+        }
+       
     }
 
 
@@ -159,14 +164,16 @@ int main (int argc, char *argv[]) {
     myShader.use();
     myShader.setInt("voxelCount", voxels.size());
 
-    glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
+    glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_FRONT);
-    //glFrontFace(GL_CW);
-    
-    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 100.0f);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CW);
+
+    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 1000.0f);
     glm::mat4 model = glm::mat4(1.0);
+    glm::mat4 model2 = glm::mat4(1.0);
+
     model = glm::scale(model, glm::vec3(8));
 
     std::cout << "Starting program loop...\n";
@@ -179,9 +186,13 @@ int main (int argc, char *argv[]) {
 
         glClearColor(0.4f, 0.4f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-        
-        playerCam.Update(); 
+
+
+        playerCam.Update();
+
+        model = glm::mat4(1.0);
+        model = glm::scale(model, glm::vec3(8));
+        model = glm::translate(model, glm::vec3(0, 0, 0));
 
         myShader.use();
         myShader.setFloat("tickingAway", glfwGetTime());
@@ -193,14 +204,29 @@ int main (int argc, char *argv[]) {
 
         myShader.setMat4("iViewMat", glm::inverse(playerCam.lookat));
         myShader.setMat4("iProjMat", glm::inverse(perspective));
-     
+
         myShader.setMat4("iMatTransform", glm::inverse(perspective * playerCam.lookat * model));
 
         processInput(myWin.getWindow());
 
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        
+
+        for (int x = 0; x < 30; x++)
+        {
+            for (int y = 0; y < 30; y++)
+            {
+                for (int z = 0; z < 30; z++)
+                {
+                    model = glm::mat4(1.0);
+                    model = glm::scale(model, glm::vec3(8));
+                    model = glm::translate(model, glm::vec3(x, y, z));
+                    myShader.setMat4("model", model);
+                    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+                }
+            }
+        }
+
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
     }
@@ -225,13 +251,13 @@ void processInput(GLFWwindow* window)
             glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
             fullscr = true;
         }
-        else if (!fullscr){
+        else if (!fullscr) {
             std::cout << "Windowed\n";
             glfwSetWindowMonitor(window, NULL, 200, 200, 600, 600, 0);
         }
     }
     if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE)
-        fullscr = false;    
+        fullscr = false;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         playerCam.position += playerCam.front * camSpeed;
@@ -241,9 +267,9 @@ void processInput(GLFWwindow* window)
         playerCam.position += playerCam.right * camSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         playerCam.position -= playerCam.right * camSpeed;
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         playerCam.position += playerCam.localUp * camSpeed;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         playerCam.position -= playerCam.localUp * camSpeed;
 
 }
@@ -258,10 +284,10 @@ void viewportSizeChanged(GLFWwindow* window, int width, int height)
 void mouseUpdate(GLFWwindow* window, double xpos, double ypos)
 {
     xoffset = xpos - lastX;
-    yoffset = lastY - ypos; 
+    yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
-    
+
     const float sensitivity = 0.2;// * deltaTime;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
