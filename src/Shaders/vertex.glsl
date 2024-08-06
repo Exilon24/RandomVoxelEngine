@@ -17,5 +17,5 @@ void main()
 CubeUv = aPos;
 vertWorldPos = (model * vec4(aPos, 1)).xyz;
 
-gl_Position = perspective * view * model * vec4(aPos, 1.0);
+gl_Position = perspective * view *  model * vec4(aPos, 1.0);
 }

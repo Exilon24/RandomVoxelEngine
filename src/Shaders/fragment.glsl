@@ -4,9 +4,7 @@
 #define MAX_STEPS 100
 #define EPSILON 0.001
 
-#define GRID_CELL_SIZE 1
-
-#define BRICK_SIZE 8
+#define BRICK_SIZE 32
 
 layout(std430, binding = 0) buffer voxelData
 {
@@ -53,8 +51,8 @@ vec3 render()
 	///////////////////////////////////////////////////////////////////////////////////
 	// For the love of god and all holy use floats instead of intergers for division //
 	///////////////////////////////////////////////////////////////////////////////////
-	ivec3 currentVoxel = ivec3(min(floor((CubeUv * 8.0) + rayDirection * 0.0001),vec3(7.999))) ;
-	vec3 rayOrigin = CubeUv * 8.0;
+	ivec3 currentVoxel = ivec3(min(floor((CubeUv * BRICK_SIZE) + rayDirection * 0.0001),vec3(BRICK_SIZE - 0.001))) ;
+	vec3 rayOrigin = CubeUv * BRICK_SIZE;
 
 	float t = 0;
 
@@ -63,20 +61,18 @@ vec3 render()
     ivec3 rayStep = ivec3(signrd + 0.);
 
 
-	vec3 rdinv = 1.0 / rayDirection;
+	vec3 rdinv = 1 / rayDirection;
 	vec3 delta = rdinv * signrd;
 	vec3 tMax = abs((currentVoxel + max(signrd, vec3(0.0)) - rayOrigin) * rdinv);
 
-	for (int i = 0; i < 20; i++) // Will change this to a more appropriate loop later
+	for (int i = 0; i < 128; i++) // Will change this to a more appropriate loop later
 	{
 		
 		// If ray escapes voxel
- 		if(any(greaterThan(currentVoxel,vec3(7))) || any(lessThan(currentVoxel,vec3(0)))) break;
+ 		if(any(greaterThan(currentVoxel,vec3(BRICK_SIZE - 1.0))) || any(lessThan(currentVoxel,vec3(0)))) break;
 
-		// Check if starting voxel is set
-		if (indexVoxels(currentVoxel) == 1) return vec3(currentVoxel / 8.0);
-
-
+		// Check if voxel is set
+		if (indexVoxels(currentVoxel) == 1) return vec3(currentVoxel) / BRICK_SIZE;
 
 		if (tMax.x < tMax.y)
 		{

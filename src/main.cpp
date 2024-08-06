@@ -130,16 +130,27 @@ int main(int argc, char* argv[]) {
 
     // 512 total voxels
     // 8x8x8
+
+    // 1024 * 32 bits
     std::vector<unsigned int> voxels;
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 1024; i++)
     {
-        if (i % 2 == 0)
+        //if (i % 2 == 0)
+        //{
+        //    voxels.push_back((unsigned int)0x55555555);
+        //}
+        //else
+        //{
+        //    voxels.push_back((unsigned int)0xAAAAAAAA);
+        //}
+
+        if (i <= 64)
         {
-            voxels.push_back((unsigned int)0x55555555);
+            voxels.push_back((unsigned int)0xFFFFFFFF);
         }
         else
         {
-            voxels.push_back((unsigned int)0xAAAAAAAA);
+            voxels.push_back((unsigned int)0x00000000);
         }
        
     }
@@ -149,26 +160,24 @@ int main(int argc, char* argv[]) {
     glGenBuffers(1, &voxelBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, voxelBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, voxels.size() * sizeof(unsigned int), &voxels[0], GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);;
 
     Shader myShader = Shader("../../src/Shaders/vertex.glsl", "../../src/Shaders/fragment.glsl");
 
-
+    // Please ignore the 10/10 error handling
     if (glGetError() != GL_NO_ERROR)
     {
         std::cerr << "AN ERROR HAS OCCURED SOMEWHERE!\n";
     }
 
-    // TODO add hasDiff to the material object and add a check for if textures are present; 
     myShader.use();
     myShader.setInt("voxelCount", voxels.size());
 
     glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-    glFrontFace(GL_CW);
+    //glEnable(GL_CULL_FACE);
+    //glCullFace(GL_FRONT);
+    //glFrontFace(GL_CW);
 
     glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 1000.0f);
     glm::mat4 model = glm::mat4(1.0);
@@ -209,23 +218,11 @@ int main(int argc, char* argv[]) {
 
         processInput(myWin.getWindow());
 
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, voxelBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, voxels.size() * sizeof(unsigned int), &voxels[0], GL_STATIC_DRAW);
+
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-        for (int x = 0; x < 30; x++)
-        {
-            for (int y = 0; y < 30; y++)
-            {
-                for (int z = 0; z < 30; z++)
-                {
-                    model = glm::mat4(1.0);
-                    model = glm::scale(model, glm::vec3(8));
-                    model = glm::translate(model, glm::vec3(x, y, z));
-                    myShader.setMat4("model", model);
-                    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-                }
-            }
-        }
 
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
