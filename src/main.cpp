@@ -8,10 +8,12 @@
 #include <GLFW/glfw3.h>
 
 #include <vector>
+#include <unordered_map>
 #include <window.hpp>
 #include <cstdio>
 #include <shader.hpp>
 #include <camera.hpp>
+#include <chunk.hpp>
 
 #include <iostream>
 
@@ -40,8 +42,6 @@ void viewportSizeChanged(GLFWwindow* window, int width, int height);
 void mouseUpdate(GLFWwindow* window, double xpos, double ypos);
 
 Camera playerCam;
-glm::vec3 camDirection;
-glm::mat3 viewMat;
 
 int main(int argc, char* argv[]) {
 
@@ -123,44 +123,37 @@ int main(int argc, char* argv[]) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-    //glEnableVertexAttribArray(1);
-    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-
     // REST OF CODE
 
-    // 512 total voxels
-    // 8x8x8
+    std::unordered_map<glm::vec3, std::vector<unsigned int>, vecKeyTrait, vecKeyTrait> chunks;
 
-    // 1024 * 32 bits
-    std::vector<unsigned int> voxels;
-    for (int i = 0; i < 1024; i++)
+    for (int x = 0; x < 10; x++)
     {
-        //if (i % 2 == 0)
-        //{
-        //    voxels.push_back((unsigned int)0x55555555);
-        //}
-        //else
-        //{
-        //    voxels.push_back((unsigned int)0xAAAAAAAA);
-        //}
+        for (int y = 0; y < 2; y++)
+        {
+            for (int z = 0; z < 10; z++)
+            {
+                std::vector<unsigned int> voxels;
+                for (int i = 0; i < 1024; i++)
+                {
+                    if (i <= 64)
+                    {
+                        voxels.push_back((unsigned int)0xFFFFFFFF);
+                    }
+                    else
+                    {
+                        voxels.push_back((unsigned int)0x00000000);
+                    }
+                }
+                chunks[glm::vec3(x, y, z)] = voxels;
 
-        if (i <= 64)
-        {
-            voxels.push_back((unsigned int)0xFFFFFFFF);
+            }
         }
-        else
-        {
-            voxels.push_back((unsigned int)0x00000000);
-        }
-       
     }
-
 
     GLuint voxelBuffer;
     glGenBuffers(1, &voxelBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, voxelBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, voxels.size() * sizeof(unsigned int), &voxels[0], GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);;
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);
 
     Shader myShader = Shader("../../src/Shaders/vertex.glsl", "../../src/Shaders/fragment.glsl");
 
@@ -171,19 +164,20 @@ int main(int argc, char* argv[]) {
     }
 
     myShader.use();
-    myShader.setInt("voxelCount", voxels.size());
 
     glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_FRONT);
-    //glFrontFace(GL_CW);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CW);
 
     glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 1000.0f);
     glm::mat4 model = glm::mat4(1.0);
-    glm::mat4 model2 = glm::mat4(1.0);
 
     model = glm::scale(model, glm::vec3(8));
+    model = glm::translate(model, glm::vec3(2, 1, 1));
+
+    int count = 0;
 
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
@@ -199,30 +193,26 @@ int main(int argc, char* argv[]) {
 
         playerCam.Update();
 
-        model = glm::mat4(1.0);
-        model = glm::scale(model, glm::vec3(8));
-        model = glm::translate(model, glm::vec3(0, 0, 0));
-
         myShader.use();
         myShader.setFloat("tickingAway", glfwGetTime());
 
-        myShader.setMat4("model", model);
         myShader.setMat4("perspective", perspective); // Persp
         myShader.setVec3("camPos", playerCam.position);
         myShader.setMat4("view", playerCam.lookat); // View
+        myShader.setMat4("model", model);
 
+        myShader.setMat4("iModelMat", glm::inverse(model));
         myShader.setMat4("iViewMat", glm::inverse(playerCam.lookat));
         myShader.setMat4("iProjMat", glm::inverse(perspective));
 
-        myShader.setMat4("iMatTransform", glm::inverse(perspective * playerCam.lookat * model));
+        glBufferData(GL_SHADER_STORAGE_BUFFER, chunks[glm::vec3(2, 1, 1)].size() * sizeof(unsigned int), &chunks[glm::vec3(2, 1, 1)][0], GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);
 
-        processInput(myWin.getWindow());
-
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, voxelBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, voxels.size() * sizeof(unsigned int), &voxels[0], GL_STATIC_DRAW);
-
+        // Draw chunks
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        processInput(myWin.getWindow());
 
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();

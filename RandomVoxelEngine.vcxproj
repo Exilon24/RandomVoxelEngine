@@ -209,6 +209,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\camera.hpp" />
+    <ClInclude Include="src\utils\chunk.hpp" />
     <ClInclude Include="src\utils\shader.hpp" />
     <ClInclude Include="src\utils\window.hpp" />
   </ItemGroup>

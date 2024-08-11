@@ -6,18 +6,25 @@
 
 #include<shader.hpp>
 #include<vector>
+#include<iostream>
 
-class Chunk
+struct Chunk
 {
-public:
-	Chunk();
-	Chunk(Shader& shader);
-	void setShader(Shader& shader);
-
 	glm::vec3 position = glm::vec3(0.0);
-	glm::vec3 voxelDimentions = glm::vec3(8);
-	std::vector<unsigned int> voxels;
+	std::vector<unsigned int> voxelData;
+};
 
+struct vecKeyTrait
+{
+	size_t operator()(const glm::vec3& x) const
+	{
+		return std::hash<float>()(x.x) ^ std::hash<float>()(x.y) ^ std::hash<float>()(x.z);
+	}
+
+	bool operator()(const glm::vec3& a, const glm::vec3& b) const
+	{
+		return a.x == b.x && a.y == b.y && a.z == b.z;
+	}
 };
 
 #endif // !CHUNK_UTIL
