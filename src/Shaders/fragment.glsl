@@ -37,7 +37,7 @@ float ufract(float x)
 
 uint indexVoxels(ivec3 voxel_i)
 {
-	uint voxel_index = voxel_i.x + voxel_i.y * BRICK_SIZE + voxel_i.z * BRICK_SIZE * BRICK_SIZE;
+	uint voxel_index = voxel_i.x * BRICK_SIZE * BRICK_SIZE + voxel_i.z * BRICK_SIZE - voxel_i.y;
 	uint word_index = voxel_index / 32;
 	uint in_word_index = voxel_index % 32;
 	uint voxel_bit = (voxels[word_index] >> in_word_index) & 1;

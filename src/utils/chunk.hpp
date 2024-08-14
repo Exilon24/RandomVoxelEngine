@@ -18,22 +18,22 @@ std::vector<unsigned int> loadChunk(glm::vec3 chunkPosition)
 
 	for (int x = 0; x < 32; x++)
 	{
-		for (int y = 0; y < 32; y++)
+		for (int z = 0; z < 32; z++)
 		{
-			for (int z = 0; z < 32; z++)
+			for (int y = 0; y < 32; y++)
 			{
-				int height = (int)((perlin2D((float)x / 32 + chunkPosition.x , (float)z / 32 +chunkPosition.z) * 0.5 + 0.5) * 32);
+				int height = (int)((perlin2D((float)x / 32 + chunkPosition.x, (float)z / 32 + chunkPosition.z) * -0.5 + 0.5) * 32);
 				if (y < height)
 				{
 					buffer += 1;
-					if (z < 31)
+					if (y < 31)
 					{
 						buffer = buffer << 1;;
 					}
 				}
 				else
 				{
-					if (z < 31)
+					if (y < 31)
 					{
 						buffer = buffer << 1;;
 					}
