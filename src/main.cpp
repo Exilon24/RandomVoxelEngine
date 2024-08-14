@@ -7,6 +7,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <perlin.hpp>
+
 #include <vector>
 #include <unordered_map>
 #include <window.hpp>
@@ -14,7 +16,7 @@
 #include <shader.hpp>
 #include <camera.hpp>
 #include <chunk.hpp>
-
+#include <random>
 #include <iostream>
 
 // Options
@@ -129,23 +131,11 @@ int main(int argc, char* argv[]) {
 
     for (int x = 0; x < 10; x++)
     {
-        for (int y = 0; y < 2; y++)
+        for (int y = 0; y < 1; y++)
         {
             for (int z = 0; z < 10; z++)
             {
-                std::vector<unsigned int> voxels;
-                for (int i = 0; i < 1024; i++)
-                {
-                    if (i <= 64)
-                    {
-                        voxels.push_back((unsigned int)0xFFFFFFFF);
-                    }
-                    else
-                    {
-                        voxels.push_back((unsigned int)0x00000000);
-                    }
-                }
-                chunks[glm::vec3(x, y, z)] = voxels;
+                chunks[glm::vec3(x, y, z)] = loadChunk(glm::vec3(x,y,z));
 
             }
         }
@@ -199,18 +189,26 @@ int main(int argc, char* argv[]) {
         myShader.setMat4("perspective", perspective); // Persp
         myShader.setVec3("camPos", playerCam.position);
         myShader.setMat4("view", playerCam.lookat); // View
-        myShader.setMat4("model", model);
 
-        myShader.setMat4("iModelMat", glm::inverse(model));
         myShader.setMat4("iViewMat", glm::inverse(playerCam.lookat));
         myShader.setMat4("iProjMat", glm::inverse(perspective));
 
-        glBufferData(GL_SHADER_STORAGE_BUFFER, chunks[glm::vec3(2, 1, 1)].size() * sizeof(unsigned int), &chunks[glm::vec3(2, 1, 1)][0], GL_STATIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);
-
-        // Draw chunks
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        for (auto& currentChunk : chunks)
+        {
+            model = glm::mat4(1.0);
+            model = glm::scale(model, glm::vec3(16));
+            model = glm::translate(model, currentChunk.first);
+
+            myShader.setMat4("model", model);
+            myShader.setMat4("iModelMat", glm::inverse(model));
+
+            glBufferData(GL_SHADER_STORAGE_BUFFER, currentChunk.second.size() * sizeof(unsigned int), &currentChunk.second[0], GL_STATIC_DRAW);
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        }
+
+
 
         processInput(myWin.getWindow());
 

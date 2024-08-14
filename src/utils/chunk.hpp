@@ -7,12 +7,45 @@
 #include<shader.hpp>
 #include<vector>
 #include<iostream>
+#include<bitset>
+#include <perlin.hpp>
 
-struct Chunk
+std::vector<unsigned int> loadChunk(glm::vec3 chunkPosition)
 {
-	glm::vec3 position = glm::vec3(0.0);
-	std::vector<unsigned int> voxelData;
-};
+	std::vector<unsigned int> voxels;
+
+	unsigned int buffer = 0;
+
+	for (int x = 0; x < 32; x++)
+	{
+		for (int y = 0; y < 32; y++)
+		{
+			for (int z = 0; z < 32; z++)
+			{
+				int height = (int)((perlin2D((float)x / 32 + chunkPosition.x , (float)z / 32 +chunkPosition.z) * 0.5 + 0.5) * 32);
+				if (y < height)
+				{
+					buffer += 1;
+					if (z < 31)
+					{
+						buffer = buffer << 1;;
+					}
+				}
+				else
+				{
+					if (z < 31)
+					{
+						buffer = buffer << 1;;
+					}
+				}
+			}
+			voxels.push_back(buffer);
+			buffer = 0;
+		}
+	}
+
+	return voxels;
+}
 
 struct vecKeyTrait
 {

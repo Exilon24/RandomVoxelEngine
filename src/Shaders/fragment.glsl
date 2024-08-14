@@ -37,7 +37,7 @@ float ufract(float x)
 
 uint indexVoxels(ivec3 voxel_i)
 {
-	uint voxel_index = voxel_i.x + voxel_i.z * BRICK_SIZE + voxel_i.y * BRICK_SIZE * BRICK_SIZE;
+	uint voxel_index = voxel_i.x + voxel_i.y * BRICK_SIZE + voxel_i.z * BRICK_SIZE * BRICK_SIZE;
 	uint word_index = voxel_index / 32;
 	uint in_word_index = voxel_index % 32;
 	uint voxel_bit = (voxels[word_index] >> in_word_index) & 1;
@@ -72,7 +72,7 @@ vec3 render()
  		if(any(greaterThan(currentVoxel,vec3(BRICK_SIZE - 1.0))) || any(lessThan(currentVoxel,vec3(0)))) break;
 
 		// Check if voxel is set
-		if (indexVoxels(currentVoxel) == 1) return vec3(currentVoxel) / BRICK_SIZE;
+		if (indexVoxels(currentVoxel) == 1) return vec3(0, currentVoxel.y, 0) / 32;
 
 		if (tMax.x < tMax.y)
 		{

@@ -202,6 +202,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="include\glad\glad.c" />
+    <ClCompile Include="perlin.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\utils\camera.cpp" />
     <ClCompile Include="src\utils\shader.cpp" />
@@ -210,6 +211,7 @@
   <ItemGroup>
     <ClInclude Include="src\utils\camera.hpp" />
     <ClInclude Include="src\utils\chunk.hpp" />
+    <ClInclude Include="src\utils\perlin.hpp" />
     <ClInclude Include="src\utils\shader.hpp" />
     <ClInclude Include="src\utils\window.hpp" />
   </ItemGroup>
