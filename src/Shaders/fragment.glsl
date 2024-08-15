@@ -21,12 +21,14 @@ in vec3 vertWorldPos;
 
 uniform float tickingAway;
 uniform vec3 camPos;
+uniform vec3 chunkPos;
 
 uniform mat4 iProjMat;
 uniform mat4 iViewMat;
 uniform mat4 iMatTransform;
 
 uniform int voxelCount;
+
 
 vec2 resolution = vec2(1920, 1080);
 
@@ -37,7 +39,7 @@ float ufract(float x)
 
 uint indexVoxels(ivec3 voxel_i)
 {
-	uint voxel_index = voxel_i.x * BRICK_SIZE * BRICK_SIZE + voxel_i.z * BRICK_SIZE - voxel_i.y;
+	uint voxel_index = voxel_i.x * BRICK_SIZE * BRICK_SIZE + voxel_i.y * BRICK_SIZE + voxel_i.z;
 	uint word_index = voxel_index / 32;
 	uint in_word_index = voxel_index % 32;
 	uint voxel_bit = (voxels[word_index] >> in_word_index) & 1;
@@ -72,7 +74,7 @@ vec3 render()
  		if(any(greaterThan(currentVoxel,vec3(BRICK_SIZE - 1.0))) || any(lessThan(currentVoxel,vec3(0)))) break;
 
 		// Check if voxel is set
-		if (indexVoxels(currentVoxel) == 1) return vec3(0, currentVoxel.y, 0) / 32;
+		if (indexVoxels(currentVoxel) == 1) return vec3(0, currentVoxel.y + (32 * chunkPos.y), 0) / 64;
 
 		if (tMax.x < tMax.y)
 		{

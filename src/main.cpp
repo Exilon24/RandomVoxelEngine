@@ -1,3 +1,5 @@
+#define CAM_SPEED 50
+
 #include "camera.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
@@ -24,7 +26,7 @@
 int screenHeight = 1920;
 int screenWidth = 1080;
 
-float camSpeed = 0.2;
+float camSpeed = CAM_SPEED;
 // ----------------------------------------------
 
 float deltaTime = 1;
@@ -131,7 +133,7 @@ int main(int argc, char* argv[]) {
 
     for (int x = 0; x < 10; x++)
     {
-        for (int y = 0; y < 1; y++)
+        for (int y = 0; y < 2; y++)
         {
             for (int z = 0; z < 10; z++)
             {
@@ -165,7 +167,6 @@ int main(int argc, char* argv[]) {
     glm::mat4 model = glm::mat4(1.0);
 
     model = glm::scale(model, glm::vec3(8));
-    model = glm::translate(model, glm::vec3(2, 1, 1));
 
     int count = 0;
 
@@ -195,14 +196,32 @@ int main(int argc, char* argv[]) {
 
         glBindVertexArray(VAO);
 
+        glm::vec3 camVoxelSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
+        std::cout << camVoxelSpace.x << " " << camVoxelSpace.z << "\n";
+        for (int x = -32; x <= 32; x++)
+        {
+            for (int z = -32; z <= 32; z++)
+            {
+                glm::vec3 currentPos = camVoxelSpace + glm::vec3(x, 0, z);
+                if (chunks.find(currentPos) == chunks.end())
+                {
+                    chunks[currentPos] = loadChunk(currentPos);
+                    camVoxelSpace.y = 1;
+                    chunks[currentPos] = loadChunk(currentPos);
+                }
+            }
+        }
+
         for (auto& currentChunk : chunks)
         {
+            if (glm::distance(currentChunk.first, camVoxelSpace) > 5) continue;
             model = glm::mat4(1.0);
             model = glm::scale(model, glm::vec3(16));
             model = glm::translate(model, currentChunk.first);
 
             myShader.setMat4("model", model);
             myShader.setMat4("iModelMat", glm::inverse(model));
+            myShader.setVec3("chunkPos", currentChunk.first);
 
             glBufferData(GL_SHADER_STORAGE_BUFFER, currentChunk.second.size() * sizeof(unsigned int), &currentChunk.second[0], GL_STATIC_DRAW);
             glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -241,6 +260,8 @@ void processInput(GLFWwindow* window)
             glfwSetWindowMonitor(window, NULL, 200, 200, 600, 600, 0);
         }
     }
+
+    camSpeed = CAM_SPEED * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE)
         fullscr = false;
 
