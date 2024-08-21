@@ -74,9 +74,9 @@ void ChunkUpdate()
             std::unique_lock<std::mutex> lock(loadChunkMutex);
             mutex_condition.wait(lock, []
                 {
-                    return stopWork || chunksToLoad.empty();
+                    return !chunksToLoad.empty() || stopWork;
                 });
-            
+
             if (stopWork) return;
             chunkToLoad = chunksToLoad.front();
             chunksToLoad.pop();
@@ -178,14 +178,14 @@ int main(int argc, char* argv[]) {
     // TODO:
     //for the chunk loading you want to produce a list of chunks that need to be loaded -> generate them in parallel across threads and add each generated chunk to a list -> in one thread add each of the new chunks from the list into the map
 
-    for (int x = 0; x < 5; x++)
+    for (int x = -20; x < 20; x++)
     {
         for (int y = 0; y < 2; y++)
         {
-            for (int z = 0; z < 5; z++)
+            for (int z = -20; z < 20; z++)
             {
-               std::vector<unsigned int> chunkInfo = loadChunk(glm::ivec3(x,y,z));
-               chunks[glm::ivec3(x, y, z)] = std::move(chunkInfo);
+                chunksToLoad.push(glm::ivec3(x,y,z));
+                processingChunks.insert(glm::ivec3(x, y, z));
             }
         }
     }
@@ -241,9 +241,9 @@ int main(int argc, char* argv[]) {
 
         if (lastCamVoxSpace != camVoxelSpace)
         {
-            for (int x = -5; x <= 5; x++)
+            for (int x = -20; x <= 20; x++)
             {
-                for (int z = -5; z <= 5; z++)
+                for (int z = -20; z <= 20; z++)
                 {
                     glm::ivec3 currentPos = camVoxelSpace + glm::vec3(x, 0, z);
                     if (chunks.find(currentPos) == chunks.end() && processingChunks.find(currentPos) == processingChunks.end())
@@ -278,19 +278,23 @@ int main(int argc, char* argv[]) {
         glBindVertexArray(VAO);
 
         // Render a chunk
-        for (auto& currentChunk : chunks)
         {
-            if (glm::distance(glm::vec3(currentChunk.first), camVoxelSpace) > 32) continue;
-            model = glm::mat4(1.0);
-            model = glm::scale(model, glm::vec3(16));
-            model = glm::translate(model, glm::vec3(currentChunk.first));
+            std::unique_lock<std::mutex> lock(loadChunkMutex);
 
-            myShader.setMat4("model", model);
-            myShader.setMat4("iModelMat", glm::inverse(model));
-            myShader.setVec3("chunkPos", currentChunk.first);
+            for (auto& currentChunk : chunks)
+            {
+                if (glm::distance(glm::vec3(currentChunk.first), camVoxelSpace) > 32) continue;
+                model = glm::mat4(1.0);
+                model = glm::scale(model, glm::vec3(16));
+                model = glm::translate(model, glm::vec3(currentChunk.first));
 
-            glBufferData(GL_SHADER_STORAGE_BUFFER, currentChunk.second.size() * sizeof(unsigned int), &currentChunk.second[0], GL_STATIC_DRAW);
-            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+                myShader.setMat4("model", model);
+                myShader.setMat4("iModelMat", glm::inverse(model));
+                myShader.setVec3("chunkPos", currentChunk.first);
+
+                glBufferData(GL_SHADER_STORAGE_BUFFER, currentChunk.second.size() * sizeof(unsigned int), &currentChunk.second[0], GL_STATIC_DRAW);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            }
         }
 
         lastCamVoxSpace = camVoxelSpace;
