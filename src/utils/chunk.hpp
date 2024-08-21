@@ -70,7 +70,7 @@ std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
 		}
 	}
 
-	return voxels;
+	return std::move(voxels);
 }
 
 #endif // !CHUNK_UTIL
