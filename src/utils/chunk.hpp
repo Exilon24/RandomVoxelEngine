@@ -32,7 +32,7 @@ struct vecKeyTrait
 	}
 };
 
-void loadChunk(glm::ivec3 chunkPosition, std::unordered_map<glm::ivec3, std::vector<unsigned int>, vecKeyTrait, vecKeyTrait>& returnVoxels)
+std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
 {
 	std::vector<unsigned int> voxels;
 
@@ -70,7 +70,7 @@ void loadChunk(glm::ivec3 chunkPosition, std::unordered_map<glm::ivec3, std::vec
 		}
 	}
 
-	returnVoxels[chunkPosition] = voxels;
+	return voxels;
 }
 
 #endif // !CHUNK_UTIL

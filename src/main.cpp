@@ -13,6 +13,9 @@
 
 #include <vector>
 #include <unordered_map>
+#include <queue>
+#include <unordered_set >
+
 #include <window.hpp>
 #include <cstdio>
 #include <shader.hpp>
@@ -20,7 +23,6 @@
 #include <chunk.hpp>
 #include <random>
 #include <iostream>
-#include <queue>
 
 #include <thread>
 #include <mutex>
@@ -50,25 +52,27 @@ void viewportSizeChanged(GLFWwindow* window, int width, int height);
 void mouseUpdate(GLFWwindow* window, double xpos, double ypos);
 
 std::unordered_map<glm::ivec3, std::vector<unsigned int>, vecKeyTrait, vecKeyTrait> chunks;
+std::unordered_set<glm::ivec3, vecKeyTrait, vecKeyTrait> processingChunks;
 std::queue<glm::ivec3> chunksToLoad;
 
-std::mutex popChunkMutex;
 std::mutex loadChunkMutex;
 
 void ChunkUpdate()
 {
-    if (chunksToLoad.size() == 0 ) return;
-
-    popChunkMutex.lock();
-    glm::ivec3 chunkToLoad = chunksToLoad.front();
-    chunksToLoad.pop();
-    popChunkMutex.unlock();
-
-    if (chunks.find(chunkToLoad) == chunks.end())
+    glm::ivec3 chunkToLoad;
     {
-        loadChunkMutex.lock();
-        loadChunk(chunkToLoad, chunks);
-        loadChunkMutex.unlock();
+        const std::lock_guard<std::mutex> lock(loadChunkMutex);
+        if (chunksToLoad.size() == 0) return;
+        chunkToLoad = chunksToLoad.front();
+        chunksToLoad.pop();
+    }
+
+    const std::vector<unsigned int> chunkInfo = loadChunk(chunkToLoad);
+
+    {
+        const std::lock_guard<std::mutex> lock(loadChunkMutex);
+        chunks[chunkToLoad] = std::move(chunkInfo);
+        processingChunks.erase(processingChunks.find(chunkToLoad));
     }
 }
 
@@ -169,8 +173,8 @@ int main(int argc, char* argv[]) {
         {
             for (int z = 0; z < 5; z++)
             {
-               loadChunk(glm::ivec3(x,y,z), chunks);
-
+               std::vector<unsigned int> chunkInfo = loadChunk(glm::ivec3(x,y,z));
+               chunks[glm::ivec3(x, y, z)] = std::move(chunkInfo);
             }
         }
     }
@@ -227,17 +231,18 @@ int main(int argc, char* argv[]) {
 
         if (lastCamVoxSpace != camVoxelSpace)
         {
-            for (int x = -5; x <= 5; x++)
+            for (int x = -20; x <= 20; x++)
             {
-                for (int z = -5; z <= 5; z++)
+                for (int z = -20; z <= 20; z++)
                 {
                     glm::ivec3 currentPos = camVoxelSpace + glm::vec3(x, 0, z);
-                    if (chunks.find(currentPos) == chunks.end())
+                    if (chunks.find(currentPos) == chunks.end() && processingChunks.find(currentPos) == processingChunks.end())
                     {
-
+                        processingChunks.insert(currentPos);
                         chunksToLoad.push(currentPos);
                         currentPos.y = 1;
                         chunksToLoad.push(currentPos);
+                        processingChunks.insert(currentPos);
                     }
                 }
             }

@@ -1,12 +1,12 @@
 ﻿  main.cpp
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(37,17): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(249,53): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(343,20): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(344,21): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(345,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(346,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(348,31): warning C4305: 'initializing': truncation from 'double' to 'float'
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(356,17): warning C4305: '=': truncation from 'double' to 'float'
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(358,18): warning C4305: '=': truncation from 'double' to 'float'
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(39,17): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(254,53): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(348,20): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(349,21): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(350,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(351,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(353,31): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(361,17): warning C4305: '=': truncation from 'double' to 'float'
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(363,18): warning C4305: '=': truncation from 'double' to 'float'
 LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
   RandomVoxelEngine.vcxproj -> C:\Users\pasha\Source\Repos\RandomVoxelEngine\x64\Debug\RandomVoxelEngine.exe
