@@ -1,28 +1,38 @@
-// TODO: Use bounding boxes and raymarch inside them. Cull unseen boxes. 
-
+#define CAM_SPEED 50
 
 #include "camera.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
+#include "glm/gtx/string_cast.hpp"
 #include "glm/geometric.hpp"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <perlin.hpp>
+
 #include <vector>
+#include <unordered_map>
+#include <queue>
+#include <unordered_set >
+
 #include <window.hpp>
 #include <cstdio>
 #include <shader.hpp>
 #include <camera.hpp>
-
+#include <chunk.hpp>
+#include <random>
 #include <iostream>
+
+#include <thread>
+#include <mutex>
 
 // Options
 // ----------------------------------------------
 int screenHeight = 1920;
 int screenWidth = 1080;
 
-float camSpeed = 0.02;
+float camSpeed = CAM_SPEED;
 // ----------------------------------------------
 
 float deltaTime = 1;
@@ -33,24 +43,50 @@ float xoffset;
 float yoffset;
 
 float pitch, yaw;
-float lastX = static_cast<float>(screenWidth / 2), lastY = static_cast<float>( screenHeight/ 2);
+float lastX = static_cast<float>(screenWidth / 2), lastY = static_cast<float>(screenHeight / 2);
 
 bool fullscr = false;
 
 void processInput(GLFWwindow* window);
 void viewportSizeChanged(GLFWwindow* window, int width, int height);
 void mouseUpdate(GLFWwindow* window, double xpos, double ypos);
-    
-Camera playerCam;
-glm::vec3 camDirection;
-glm::mat3 viewMat;
 
-int main (int argc, char *argv[]) {
+std::unordered_map<glm::ivec3, std::vector<unsigned int>, vecKeyTrait, vecKeyTrait> chunks;
+std::unordered_set<glm::ivec3, vecKeyTrait, vecKeyTrait> processingChunks;
+std::queue<glm::ivec3> chunksToLoad;
+
+std::mutex loadChunkMutex;
+
+void ChunkUpdate()
+{
+    glm::ivec3 chunkToLoad;
+    {
+        const std::lock_guard<std::mutex> lock(loadChunkMutex);
+        if (chunksToLoad.size() == 0) return;
+        chunkToLoad = chunksToLoad.front();
+        chunksToLoad.pop();
+    }
+
+    const std::vector<unsigned int> chunkInfo = loadChunk(chunkToLoad);
+
+    {
+        const std::lock_guard<std::mutex> lock(loadChunkMutex);
+        chunks[chunkToLoad] = std::move(chunkInfo);
+        processingChunks.erase(processingChunks.find(chunkToLoad));
+    }
+}
+
+Camera playerCam;
+
+int workerCount = std::min<int>(1, std::thread::hardware_concurrency() - 1);
+
+
+int main(int argc, char* argv[]) {
 
     // Create window
     Window myWin = Window(600, 620, "Awesome sauce");
     myWin.makeWindowContextCurrent();
-    
+
     std::cout << "Loading glad...\n";
     // Load glad function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -64,22 +100,22 @@ int main (int argc, char *argv[]) {
     }
     // Set callbacks
     glfwSetFramebufferSizeCallback(myWin.getWindow(), viewportSizeChanged);
-    glfwSetCursorPosCallback(myWin.getWindow(), mouseUpdate);  
+    glfwSetCursorPosCallback(myWin.getWindow(), mouseUpdate);
 
     glEnable(GL_DEPTH_TEST);
 
-    constexpr float cubeVerts[] = 
+    constexpr float cubeVerts[] =
     {
-    1.0f, 1.0f, 1.0f,       //1.0f, 1.0f, 1.0f, //111 -- 0
-    -1.0f, 1.0f, 1.0f,      //0.0f, 1.0f, 1.0f, //011 -- 1
-    -1.0f, 1.0f, -1.0f,     //0.0f, 1.0f, 0.0f, //010 -- 2
-    1.0f, 1.0f, -1.0f,      //1.0f, 1.0f, 0.0f, //110 -- 3
+    0.0f, 0.0f, 0.0f,      //111 -- 0
+    1.0f, 0.0f, 0.0f,     //011 -- 1
+    1.0f, 0.0f, 1.0f,    //010 -- 2
+    0.0f, 0.0f, 1.0f,     //110 -- 3
 
-    -1.0f, -1.0f, 1.0f,     //0.0f, 0.0f, 1.0f, //001 -- 4
-    -1.0f, -1.0f, -1.0f,    //0.0f, 0.0f, 0.0f, //000 -- 5
-    1.0f, -1.0f, -1.0f,     //1.0f, 0.0f, 0.0f, //100 -- 6
-    1.0f, -1.0f, 1.0f,      //1.0f, 0.0f, 1.0f  //101 -- 7
-};
+    1.0f, 1.0f, 0.0f,    //001 -- 4
+    1.0f, 1.0f, 1.0f,   //000 -- 5
+    0.0f, 1.0f, 1.0f,    //100 -- 6
+    0.0f, 1.0f, 0.0f,     //101 -- 7
+    };
 
     constexpr GLuint indices[] =
     {
@@ -100,7 +136,7 @@ int main (int argc, char *argv[]) {
         0, 7, 4,
 
         // left
-        5, 2, 1, 
+        5, 2, 1,
         1, 4, 5,
 
         // bottom
@@ -108,7 +144,7 @@ int main (int argc, char *argv[]) {
         6, 5, 4
     };
 
-    GLuint VBO,VAO,EBO;
+    GLuint VBO, VAO, EBO;
 
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
@@ -123,82 +159,137 @@ int main (int argc, char *argv[]) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), &cubeVerts, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-    //glEnableVertexAttribArray(1);
-    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-        
+
     // REST OF CODE
-    
-    // 512 total voxels
-    // 8x8x8
-    std::vector<unsigned int> voxels;
-    for (int i = 0; i < 16; i++)
-    {
-        voxels.push_back((unsigned int) 0x55555555);
-    }
 
+    // TODO:
+    //for the chunk loading you want to produce a list of chunks that need to be loaded -> generate them in parallel across threads and add each generated chunk to a list -> in one thread add each of the new chunks from the list into the map
+
+    for (int x = 0; x < 5; x++)
+    {
+        for (int y = 0; y < 2; y++)
+        {
+            for (int z = 0; z < 5; z++)
+            {
+               std::vector<unsigned int> chunkInfo = loadChunk(glm::ivec3(x,y,z));
+               chunks[glm::ivec3(x, y, z)] = std::move(chunkInfo);
+            }
+        }
+    }
 
     GLuint voxelBuffer;
     glGenBuffers(1, &voxelBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, voxelBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, voxels.size() * sizeof(unsigned int), &voxels[0], GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     Shader myShader = Shader("../../src/Shaders/vertex.glsl", "../../src/Shaders/fragment.glsl");
 
-
+    // Please ignore the 10/10 error handling
     if (glGetError() != GL_NO_ERROR)
     {
         std::cerr << "AN ERROR HAS OCCURED SOMEWHERE!\n";
     }
 
-    // TODO add hasDiff to the material object and add a check for if textures are present; 
     myShader.use();
-    myShader.setInt("voxelCount", voxels.size());
 
-    glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
+    glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    
-    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 100.0f);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CW);
+
+    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 1000.0f);
     glm::mat4 model = glm::mat4(1.0);
-    glm::mat4 view = glm::mat4(1.0);
+
+    glm::vec3 lastCamVoxSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
+
+    model = glm::scale(model, glm::vec3(8));
+
+    int count = 0;
+
+    std::cout << "Starting chunk loading thread..." << std::endl;
 
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
     {
-
         currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        glm::vec3 camVoxelSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
+
+        // THREADING
+        std::vector<std::thread> workers;
+        workers.reserve(workerCount);
+        for (int i = 0; i < workerCount; i++)
+            workers.emplace_back(ChunkUpdate);
+        
+
         glClearColor(0.4f, 0.4f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-        
-        playerCam.Update(); 
+
+        if (lastCamVoxSpace != camVoxelSpace)
+        {
+            for (int x = -20; x <= 20; x++)
+            {
+                for (int z = -20; z <= 20; z++)
+                {
+                    glm::ivec3 currentPos = camVoxelSpace + glm::vec3(x, 0, z);
+                    if (chunks.find(currentPos) == chunks.end() && processingChunks.find(currentPos) == processingChunks.end())
+                    {
+                        processingChunks.insert(currentPos);
+                        chunksToLoad.push(currentPos);
+                        currentPos.y = 1;
+                        chunksToLoad.push(currentPos);
+                        processingChunks.insert(currentPos);
+                    }
+                }
+            }
+        }
+
+        playerCam.Update();
 
         myShader.use();
         myShader.setFloat("tickingAway", glfwGetTime());
 
-        myShader.setMat4("model", model);
         myShader.setMat4("perspective", perspective); // Persp
         myShader.setVec3("camPos", playerCam.position);
         myShader.setMat4("view", playerCam.lookat); // View
 
-        processInput(myWin.getWindow());
+        myShader.setMat4("iViewMat", glm::inverse(playerCam.lookat));
+        myShader.setMat4("iProjMat", glm::inverse(perspective));
 
         glBindVertexArray(VAO);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        
+
+        // Render a chunk
+        for (auto& currentChunk : chunks)
+        {
+            if (glm::distance(glm::vec3(currentChunk.first), camVoxelSpace) > 32) continue;
+            model = glm::mat4(1.0);
+            model = glm::scale(model, glm::vec3(16));
+            model = glm::translate(model, glm::vec3(currentChunk.first));
+
+            myShader.setMat4("model", model);
+            myShader.setMat4("iModelMat", glm::inverse(model));
+            myShader.setVec3("chunkPos", currentChunk.first);
+
+            glBufferData(GL_SHADER_STORAGE_BUFFER, currentChunk.second.size() * sizeof(unsigned int), &currentChunk.second[0], GL_STATIC_DRAW);
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        }
+
+        for (auto& worker : workers)
+            worker.join();
+
+
+        lastCamVoxSpace = camVoxelSpace;
+
+        processInput(myWin.getWindow());
+
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
     }
+
     glfwTerminate();
     return 0;
 }
@@ -220,13 +311,15 @@ void processInput(GLFWwindow* window)
             glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
             fullscr = true;
         }
-        else if (!fullscr){
+        else if (!fullscr) {
             std::cout << "Windowed\n";
             glfwSetWindowMonitor(window, NULL, 200, 200, 600, 600, 0);
         }
     }
+
+    camSpeed = CAM_SPEED * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE)
-        fullscr = false;    
+        fullscr = false;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         playerCam.position += playerCam.front * camSpeed;
@@ -253,10 +346,10 @@ void viewportSizeChanged(GLFWwindow* window, int width, int height)
 void mouseUpdate(GLFWwindow* window, double xpos, double ypos)
 {
     xoffset = xpos - lastX;
-    yoffset = lastY - ypos; 
+    yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
-    
+
     const float sensitivity = 0.2;// * deltaTime;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
