@@ -26,6 +26,7 @@
 
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 
 // Options
 // ----------------------------------------------
@@ -56,30 +57,40 @@ std::unordered_set<glm::ivec3, vecKeyTrait, vecKeyTrait> processingChunks;
 std::queue<glm::ivec3> chunksToLoad;
 
 std::mutex loadChunkMutex;
-
-void ChunkUpdate()
-{
-    glm::ivec3 chunkToLoad;
-    {
-        const std::lock_guard<std::mutex> lock(loadChunkMutex);
-        if (chunksToLoad.size() == 0) return;
-        chunkToLoad = chunksToLoad.front();
-        chunksToLoad.pop();
-    }
-
-    const std::vector<unsigned int> chunkInfo = loadChunk(chunkToLoad);
-
-    {
-        const std::lock_guard<std::mutex> lock(loadChunkMutex);
-        chunks[chunkToLoad] = std::move(chunkInfo);
-        processingChunks.erase(processingChunks.find(chunkToLoad));
-    }
-}
+bool stopWork = false;
+std::condition_variable mutex_condition;
 
 Camera playerCam;
 
 int workerCount = std::min<int>(1, std::thread::hardware_concurrency() - 1);
 
+
+void ChunkUpdate()
+{
+    while (true)
+    {
+        glm::ivec3 chunkToLoad;
+        {
+            std::unique_lock<std::mutex> lock(loadChunkMutex);
+            mutex_condition.wait(lock, []
+                {
+                    return stopWork || chunksToLoad.empty();
+                });
+            
+            if (stopWork) return;
+            chunkToLoad = chunksToLoad.front();
+            chunksToLoad.pop();
+        }
+
+        const std::vector<unsigned int> chunkInfo = loadChunk(chunkToLoad);
+
+        {
+            std::unique_lock<std::mutex> lock(loadChunkMutex);
+            chunks[chunkToLoad] = std::move(chunkInfo);
+            processingChunks.erase(processingChunks.find(chunkToLoad));
+        }
+    }
+}
 
 int main(int argc, char* argv[]) {
 
@@ -210,6 +221,12 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Starting chunk loading thread..." << std::endl;
 
+    // THREADING
+    std::vector<std::thread> workers;
+    workers.reserve(workerCount);
+    for (int i = 0; i < workerCount; i++)
+        workers.emplace_back(ChunkUpdate);
+
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
     {
@@ -224,34 +241,29 @@ int main(int argc, char* argv[]) {
 
         if (lastCamVoxSpace != camVoxelSpace)
         {
-            for (int x = -20; x <= 20; x++)
+            for (int x = -5; x <= 5; x++)
             {
-                for (int z = -20; z <= 20; z++)
+                for (int z = -5; z <= 5; z++)
                 {
                     glm::ivec3 currentPos = camVoxelSpace + glm::vec3(x, 0, z);
                     if (chunks.find(currentPos) == chunks.end() && processingChunks.find(currentPos) == processingChunks.end())
                     {
-                        processingChunks.insert(currentPos);
-                        chunksToLoad.push(currentPos);
-                        currentPos.y = 1;
-                        chunksToLoad.push(currentPos);
-                        processingChunks.insert(currentPos);
+                        {
+                            std::unique_lock<std::mutex> lock(loadChunkMutex);
+                            processingChunks.insert(currentPos);
+                            chunksToLoad.push(currentPos);
+                            currentPos.y = 1;
+                            chunksToLoad.push(currentPos);
+                            processingChunks.insert(currentPos);
+                        }
+                        mutex_condition.notify_one();
+                        mutex_condition.notify_one();
                     }
                 }
             }
         }
 
         playerCam.Update();
-
-
-        // THREADING
-        std::vector<std::thread> workers;
-        workers.reserve(workerCount);
-        for (int i = 0; i < workerCount; i++)
-            workers.emplace_back(ChunkUpdate);
-
-        for (auto& worker : workers)
-            worker.join();
 
         myShader.use();
         myShader.setFloat("tickingAway", glfwGetTime());
@@ -288,6 +300,22 @@ int main(int argc, char* argv[]) {
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
     }
+
+    {
+        std::unique_lock<std::mutex> lock(loadChunkMutex);
+        stopWork = true;
+    }
+    mutex_condition.notify_all();
+    for (auto& worker : workers)
+        worker.join();
+
+    workers.clear();
+
+    for (auto& worker : workers)
+    {
+        worker.join();
+    }
+
 
     glfwTerminate();
     return 0;
