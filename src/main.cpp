@@ -62,7 +62,7 @@ std::condition_variable mutex_condition;
 
 Camera playerCam;
 
-int workerCount = std::min<int>(1, std::thread::hardware_concurrency() - 1);
+int workerCount = (std::thread::hardware_concurrency() <= 1 ? 1 : std::thread::hardware_concurrency());
 
 
 void ChunkUpdate()
@@ -94,6 +94,7 @@ void ChunkUpdate()
 
 int main(int argc, char* argv[]) {
 
+    std::cout << "WorkerCount: " << workerCount << '\n';
     // Create window
     Window myWin = Window(600, 620, "Awesome sauce");
     myWin.makeWindowContextCurrent();
