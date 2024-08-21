@@ -49,10 +49,6 @@ uint indexVoxels(ivec3 voxel_i)
 vec3 render()
 {
 	vec3 rayDirection = normalize(vertWorldPos - camPos);
-
-	///////////////////////////////////////////////////////////////////////////////////
-	// For the love of god and all holy use floats instead of intergers for division //
-	///////////////////////////////////////////////////////////////////////////////////
 	ivec3 currentVoxel = ivec3(min(floor((CubeUv * BRICK_SIZE) + rayDirection * 0.0001),vec3(BRICK_SIZE - 0.001))) ;
 	vec3 rayOrigin = CubeUv * BRICK_SIZE;
 

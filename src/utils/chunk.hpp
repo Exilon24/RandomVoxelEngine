@@ -14,7 +14,25 @@ int Fltsign(float x) {
 	return (x > 0) - (x < 0);
 }
 
-std::vector<unsigned int> loadChunk(glm::vec3 chunkPosition)
+struct vecKeyTrait
+{
+
+	size_t operator()(const glm::ivec3& a) const
+	{
+		unsigned int hash = 17;
+		hash = 31 * hash + a.x;
+		hash = 31 * hash + a.y;
+		hash = 31 * hash + a.z;
+		return hash;
+	}
+
+	bool operator()(const glm::ivec3& a, const glm::ivec3& b) const
+	{
+		return a.x == b.x && a.y == b.y && a.z == b.z;
+	}
+};
+
+void loadChunk(glm::ivec3 chunkPosition, std::unordered_map<glm::ivec3, std::vector<unsigned int>, vecKeyTrait, vecKeyTrait>& returnVoxels)
 {
 	std::vector<unsigned int> voxels;
 
@@ -52,20 +70,7 @@ std::vector<unsigned int> loadChunk(glm::vec3 chunkPosition)
 		}
 	}
 
-	return voxels;
+	returnVoxels[chunkPosition] = voxels;
 }
-
-struct vecKeyTrait
-{
-	size_t operator()(const glm::vec3& x) const
-	{
-		return std::hash<float>()(x.x) ^ std::hash<float>()(x.y) ^ std::hash<float>()(x.z);
-	}
-
-	bool operator()(const glm::vec3& a, const glm::vec3& b) const
-	{
-		return a.x == b.x && a.y == b.y && a.z == b.z;
-	}
-};
 
 #endif // !CHUNK_UTIL

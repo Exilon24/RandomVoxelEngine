@@ -20,6 +20,10 @@
 #include <chunk.hpp>
 #include <random>
 #include <iostream>
+#include <queue>
+
+#include <thread>
+#include <mutex>
 
 // Options
 // ----------------------------------------------
@@ -45,7 +49,33 @@ void processInput(GLFWwindow* window);
 void viewportSizeChanged(GLFWwindow* window, int width, int height);
 void mouseUpdate(GLFWwindow* window, double xpos, double ypos);
 
+std::unordered_map<glm::ivec3, std::vector<unsigned int>, vecKeyTrait, vecKeyTrait> chunks;
+std::queue<glm::ivec3> chunksToLoad;
+
+std::mutex popChunkMutex;
+std::mutex loadChunkMutex;
+
+void ChunkUpdate()
+{
+    if (chunksToLoad.size() == 0 ) return;
+
+    popChunkMutex.lock();
+    glm::ivec3 chunkToLoad = chunksToLoad.front();
+    chunksToLoad.pop();
+    popChunkMutex.unlock();
+
+    if (chunks.find(chunkToLoad) == chunks.end())
+    {
+        loadChunkMutex.lock();
+        loadChunk(chunkToLoad, chunks);
+        loadChunkMutex.unlock();
+    }
+}
+
 Camera playerCam;
+
+int workerCount = std::min<int>(1, std::thread::hardware_concurrency() - 1);
+
 
 int main(int argc, char* argv[]) {
 
@@ -127,17 +157,19 @@ int main(int argc, char* argv[]) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
+
     // REST OF CODE
 
-    std::unordered_map<glm::vec3, std::vector<unsigned int>, vecKeyTrait, vecKeyTrait> chunks;
+    // TODO:
+    //for the chunk loading you want to produce a list of chunks that need to be loaded -> generate them in parallel across threads and add each generated chunk to a list -> in one thread add each of the new chunks from the list into the map
 
-    for (int x = 0; x < 10; x++)
+    for (int x = 0; x < 5; x++)
     {
         for (int y = 0; y < 2; y++)
         {
-            for (int z = 0; z < 10; z++)
+            for (int z = 0; z < 5; z++)
             {
-                chunks[glm::vec3(x, y, z)] = loadChunk(glm::vec3(x,y,z));
+               loadChunk(glm::ivec3(x,y,z), chunks);
 
             }
         }
@@ -166,21 +198,50 @@ int main(int argc, char* argv[]) {
     glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 1000.0f);
     glm::mat4 model = glm::mat4(1.0);
 
+    glm::vec3 lastCamVoxSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
+
     model = glm::scale(model, glm::vec3(8));
 
     int count = 0;
 
+    std::cout << "Starting chunk loading thread..." << std::endl;
+
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
     {
-
         currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        glm::vec3 camVoxelSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
+
+        // THREADING
+        std::vector<std::thread> workers;
+        workers.reserve(workerCount);
+        for (int i = 0; i < workerCount; i++)
+            workers.emplace_back(ChunkUpdate);
+        
+
         glClearColor(0.4f, 0.4f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        if (lastCamVoxSpace != camVoxelSpace)
+        {
+            for (int x = -5; x <= 5; x++)
+            {
+                for (int z = -5; z <= 5; z++)
+                {
+                    glm::ivec3 currentPos = camVoxelSpace + glm::vec3(x, 0, z);
+                    if (chunks.find(currentPos) == chunks.end())
+                    {
+
+                        chunksToLoad.push(currentPos);
+                        currentPos.y = 1;
+                        chunksToLoad.push(currentPos);
+                    }
+                }
+            }
+        }
 
         playerCam.Update();
 
@@ -196,28 +257,13 @@ int main(int argc, char* argv[]) {
 
         glBindVertexArray(VAO);
 
-        glm::vec3 camVoxelSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
-        std::cout << camVoxelSpace.x << " " << camVoxelSpace.z << "\n";
-        for (int x = -32; x <= 32; x++)
-        {
-            for (int z = -32; z <= 32; z++)
-            {
-                glm::vec3 currentPos = camVoxelSpace + glm::vec3(x, 0, z);
-                if (chunks.find(currentPos) == chunks.end())
-                {
-                    chunks[currentPos] = loadChunk(currentPos);
-                    camVoxelSpace.y = 1;
-                    chunks[currentPos] = loadChunk(currentPos);
-                }
-            }
-        }
-
+        // Render a chunk
         for (auto& currentChunk : chunks)
         {
-            if (glm::distance(currentChunk.first, camVoxelSpace) > 5) continue;
+            if (glm::distance(glm::vec3(currentChunk.first), camVoxelSpace) > 32) continue;
             model = glm::mat4(1.0);
             model = glm::scale(model, glm::vec3(16));
-            model = glm::translate(model, currentChunk.first);
+            model = glm::translate(model, glm::vec3(currentChunk.first));
 
             myShader.setMat4("model", model);
             myShader.setMat4("iModelMat", glm::inverse(model));
@@ -227,13 +273,18 @@ int main(int argc, char* argv[]) {
             glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         }
 
+        for (auto& worker : workers)
+            worker.join();
 
+
+        lastCamVoxSpace = camVoxelSpace;
 
         processInput(myWin.getWindow());
 
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
     }
+
     glfwTerminate();
     return 0;
 }
