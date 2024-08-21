@@ -217,14 +217,7 @@ int main(int argc, char* argv[]) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        glm::vec3 camVoxelSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
-
-        // THREADING
-        std::vector<std::thread> workers;
-        workers.reserve(workerCount);
-        for (int i = 0; i < workerCount; i++)
-            workers.emplace_back(ChunkUpdate);
-        
+        glm::vec3 camVoxelSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));       
 
         glClearColor(0.4f, 0.4f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -249,6 +242,16 @@ int main(int argc, char* argv[]) {
         }
 
         playerCam.Update();
+
+
+        // THREADING
+        std::vector<std::thread> workers;
+        workers.reserve(workerCount);
+        for (int i = 0; i < workerCount; i++)
+            workers.emplace_back(ChunkUpdate);
+
+        for (auto& worker : workers)
+            worker.join();
 
         myShader.use();
         myShader.setFloat("tickingAway", glfwGetTime());
@@ -277,10 +280,6 @@ int main(int argc, char* argv[]) {
             glBufferData(GL_SHADER_STORAGE_BUFFER, currentChunk.second.size() * sizeof(unsigned int), &currentChunk.second[0], GL_STATIC_DRAW);
             glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         }
-
-        for (auto& worker : workers)
-            worker.join();
-
 
         lastCamVoxSpace = camVoxelSpace;
 
