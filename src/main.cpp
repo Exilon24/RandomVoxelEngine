@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
 
     for (int x = -20; x < 20; x++)
     {
-        for (int y = 0; y < 2; y++)
+        for (int y = 0; y < 20; y++)
         {
             for (int z = -20; z < 20; z++)
             {
@@ -284,7 +284,7 @@ int main(int argc, char* argv[]) {
 
             for (auto& currentChunk : chunks)
             {
-                if (glm::distance(glm::vec3(currentChunk.first), camVoxelSpace) > 32) continue;
+                if (glm::distance(glm::vec3(currentChunk.first), camVoxelSpace) > 2000) continue;
                 model = glm::mat4(1.0);
                 model = glm::scale(model, glm::vec3(16));
                 model = glm::translate(model, glm::vec3(currentChunk.first));

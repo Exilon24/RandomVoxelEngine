@@ -37,7 +37,6 @@ std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
 	std::vector<unsigned int> voxels;
 
 	unsigned int buffer = 0;
-	chunkPosition = chunkPosition;
 
 	for (int x = 0; x < 32; x++)
 	{
@@ -45,10 +44,10 @@ std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
 		{
 			for (int z = 0; z < 32; z++)
 			{
-				float xCoord = (float)x / 32 + chunkPosition.x;
-				float zCoord = (float)z / 32 - chunkPosition.z;
+				float xCoord = (float)x / 32 + (chunkPosition.x + 0x000F0000);
+				float zCoord = (float)z / 32 - (chunkPosition.z + 0x000F0000);
 
-				int height = (int)((perlin2D(xCoord, zCoord) * 0.5 + 0.5) * 64);
+				int height = (int)((perlin2D(std::abs(xCoord) / 12 , std::abs(zCoord )/12) * 0.5 + 0.5) * 640);
 				if (y + (32 * chunkPosition.y) < height)
 				{
 					buffer += 1;
@@ -69,7 +68,7 @@ std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
 			buffer = 0;
 		}
 	}
-
+	
 	return std::move(voxels);
 }
 

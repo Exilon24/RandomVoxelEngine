@@ -70,7 +70,7 @@ vec3 render()
  		if(any(greaterThan(currentVoxel,vec3(BRICK_SIZE - 1.0))) || any(lessThan(currentVoxel,vec3(0)))) break;
 
 		// Check if voxel is set
-		if (indexVoxels(currentVoxel) == 1) return vec3(0, currentVoxel.y + (32 * chunkPos.y), 0) / 64;
+		if (indexVoxels(currentVoxel) == 1) return vec3(0, currentVoxel.y + (32 * chunkPos.y), 0) / 640;
 
 		if (tMax.x < tMax.y)
 		{
