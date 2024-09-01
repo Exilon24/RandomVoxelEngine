@@ -18,5 +18,5 @@ void main()
 	0.0
 	);
 
-	imageStore(colorbuffer, pixelPos, vec4(colr, 1.0));
+	imageStore(colorbuffer, pixelPos, vec4(1.0, 0.0, 0.0, 1.0));
 }

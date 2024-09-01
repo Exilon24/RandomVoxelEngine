@@ -62,7 +62,7 @@ std::condition_variable mutex_condition;
 
 Camera playerCam;
 
-int workerCount = (std::thread::hardware_concurrency() <= 1 ? 1 : std::thread::hardware_concurrency());
+int workerCount = (std::thread::hardware_concurrency() <= 1 ? 1 : std::thread::hardware_concurrency()) - 1;
 
 
 void ChunkUpdate()
@@ -82,7 +82,7 @@ void ChunkUpdate()
             chunksToLoad.pop();
         }
 
-        const std::vector<unsigned int> chunkInfo = loadChunk(chunkToLoad);
+        std::vector<unsigned int> chunkInfo = loadChunk(chunkToLoad);
 
         {
             std::unique_lock<std::mutex> lock(loadChunkMutex);
@@ -116,86 +116,43 @@ int main(int argc, char* argv[]) {
 
     glEnable(GL_DEPTH_TEST);
 
-    constexpr float cubeVerts[] =
-    {
-    0.0f, 0.0f, 0.0f,      //111 -- 0
-    1.0f, 0.0f, 0.0f,     //011 -- 1
-    1.0f, 0.0f, 1.0f,    //010 -- 2
-    0.0f, 0.0f, 1.0f,     //110 -- 3
-
-    1.0f, 1.0f, 0.0f,    //001 -- 4
-    1.0f, 1.0f, 1.0f,   //000 -- 5
-    0.0f, 1.0f, 1.0f,    //100 -- 6
-    0.0f, 1.0f, 0.0f,     //101 -- 7
+    float frame[] = {
+        // positions        // texture Coords
+        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+         1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+         1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
     };
 
-    constexpr GLuint indices[] =
-    {
-        // Top
-        0, 1, 2,
-        2, 3, 0,
-
-        // front
-        3, 2, 5,
-        5, 6, 3,
-
-        // right
-        7, 0, 3,
-        3, 6, 7,
-
-        // back
-        4, 1, 0,
-        0, 7, 4,
-
-        // left
-        5, 2, 1,
-        1, 4, 5,
-
-        // bottom
-        4, 7, 6,
-        6, 5, 4
-    };
-
-    GLuint VBO, VAO, EBO;
+    GLuint VBO, VAO;
 
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVerts), &cubeVerts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(frame), &frame, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
 
+    // create compute output texture
+    GLuint outTexture;
+    glCreateTextures(GL_TEXTURE_2D, 1, &outTexture); //DSA maxing
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-    // REST OF CODE
-
-    // TODO:
-    //for the chunk loading you want to produce a list of chunks that need to be loaded -> generate them in parallel across threads and add each generated chunk to a list -> in one thread add each of the new chunks from the list into the map
-
-    for (int x = -20; x < 20; x++)
-    {
-        for (int y = 0; y < 20; y++)
-        {
-            for (int z = -20; z < 20; z++)
-            {
-                chunksToLoad.push(glm::ivec3(x,y,z));
-                processingChunks.insert(glm::ivec3(x, y, z));
-            }
-        }
-    }
-
-    GLuint voxelBuffer;
-    glGenBuffers(1, &voxelBuffer);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, voxelBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1920, 1080, 0, GL_RGBA, GL_FLOAT, NULL);
+    glBindImageTexture(0, outTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
     Shader myShader = Shader("../../src/Shaders/vertex.glsl", "../../src/Shaders/fragment.glsl");
+    Shader compute = Shader("../../src/Shaders/compute.glsl");
 
     // Please ignore the 10/10 error handling
     if (glGetError() != GL_NO_ERROR)
@@ -222,11 +179,8 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Starting chunk loading thread..." << std::endl;
 
-    // THREADING
-    std::vector<std::thread> workers;
-    workers.reserve(workerCount);
-    for (int i = 0; i < workerCount; i++)
-        workers.emplace_back(ChunkUpdate);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, outTexture);
 
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
@@ -235,68 +189,24 @@ int main(int argc, char* argv[]) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        compute.use();
+        glDispatchCompute((unsigned int)1920 / 8, (unsigned int)1080 / 8, 1);
+
+        // make sure writing to image has finished before read
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
         glm::vec3 camVoxelSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));       
+
+        playerCam.Update();
 
         glClearColor(0.4f, 0.4f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        if (lastCamVoxSpace != camVoxelSpace)
-        {
-            for (int x = -20; x <= 20; x++)
-            {
-                for (int z = -20; z <= 20; z++)
-                {
-                    glm::ivec3 currentPos = camVoxelSpace + glm::vec3(x, 0, z);
-                    if (chunks.find(currentPos) == chunks.end() && processingChunks.find(currentPos) == processingChunks.end())
-                    {
-                        {
-                            std::unique_lock<std::mutex> lock(loadChunkMutex);
-                            processingChunks.insert(currentPos);
-                            chunksToLoad.push(currentPos);
-                            currentPos.y = 1;
-                            chunksToLoad.push(currentPos);
-                            processingChunks.insert(currentPos);
-                        }
-                        mutex_condition.notify_one();
-                        mutex_condition.notify_one();
-                    }
-                }
-            }
-        }
-
-        playerCam.Update();
-
         myShader.use();
-        myShader.setFloat("tickingAway", glfwGetTime());
-
-        myShader.setMat4("perspective", perspective); // Persp
-        myShader.setVec3("camPos", playerCam.position);
-        myShader.setMat4("view", playerCam.lookat); // View
-
-        myShader.setMat4("iViewMat", glm::inverse(playerCam.lookat));
-        myShader.setMat4("iProjMat", glm::inverse(perspective));
 
         glBindVertexArray(VAO);
 
-        // Render a chunk
-        {
-            std::unique_lock<std::mutex> lock(loadChunkMutex);
-
-            for (auto& currentChunk : chunks)
-            {
-                if (glm::distance(glm::vec3(currentChunk.first), camVoxelSpace) > 2000) continue;
-                model = glm::mat4(1.0);
-                model = glm::scale(model, glm::vec3(16));
-                model = glm::translate(model, glm::vec3(currentChunk.first));
-
-                myShader.setMat4("model", model);
-                myShader.setMat4("iModelMat", glm::inverse(model));
-                myShader.setVec3("chunkPos", currentChunk.first);
-
-                glBufferData(GL_SHADER_STORAGE_BUFFER, currentChunk.second.size() * sizeof(unsigned int), &currentChunk.second[0], GL_STATIC_DRAW);
-                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-            }
-        }
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         lastCamVoxSpace = camVoxelSpace;
 
@@ -305,22 +215,6 @@ int main(int argc, char* argv[]) {
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
     }
-
-    {
-        std::unique_lock<std::mutex> lock(loadChunkMutex);
-        stopWork = true;
-    }
-    mutex_condition.notify_all();
-    for (auto& worker : workers)
-        worker.join();
-
-    workers.clear();
-
-    for (auto& worker : workers)
-    {
-        worker.join();
-    }
-
 
     glfwTerminate();
     return 0;

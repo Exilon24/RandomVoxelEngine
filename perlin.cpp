@@ -6,8 +6,8 @@
 // Randomly generate a gradient per vector
 glm::vec2 randomGradient(int ix, int iy) {
     // No precomputed gradients mean this works for any number of grid coordinates
-    const unsigned w = 8 * sizeof(unsigned);
-    const unsigned s = w / 2;
+    const unsigned int w = 8 * sizeof(unsigned);
+    const unsigned int s = w / 2;
     unsigned a = ix, b = iy;
     a *= 3284157443;
 

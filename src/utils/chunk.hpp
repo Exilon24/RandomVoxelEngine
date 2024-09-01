@@ -10,10 +10,6 @@
 #include<bitset>
 #include <perlin.hpp>
 
-int Fltsign(float x) {
-	return (x > 0) - (x < 0);
-}
-
 struct vecKeyTrait
 {
 
@@ -32,6 +28,24 @@ struct vecKeyTrait
 	}
 };
 
+struct TreeInfo
+{
+	static constexpr uint16_t maxLevel = 6;
+};
+
+struct AccelerationQuadtree
+{
+	uint32_t children[4 * 4 * 4];
+};
+
+struct Chunk {
+	uint32_t bitmask[32 * 32];
+};
+
+struct ChunkStore {
+	std::unique_ptr<Chunk> data;
+	GLuint gpuDataBuffer;
+};
 std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
 {
 	std::vector<unsigned int> voxels;
@@ -47,7 +61,7 @@ std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
 				float xCoord = (float)x / 32 + (chunkPosition.x + 0x000F0000);
 				float zCoord = (float)z / 32 - (chunkPosition.z + 0x000F0000);
 
-				int height = (int)((perlin2D(std::abs(xCoord) / 12 , std::abs(zCoord )/12) * 0.5 + 0.5) * 640);
+				int height = (int)((perlin2D(std::abs(xCoord) / 12 , std::abs(zCoord )/12) * 0.5 + 0.5) * 32);
 				if (y + (32 * chunkPosition.y) < height)
 				{
 					buffer += 1;
