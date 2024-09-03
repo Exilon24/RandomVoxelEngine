@@ -47,6 +47,7 @@ float pitch, yaw;
 float lastX = static_cast<float>(screenWidth / 2), lastY = static_cast<float>(screenHeight / 2);
 
 bool fullscr = false;
+bool wrFrm = false;
 
 void processInput(GLFWwindow* window);
 void viewportSizeChanged(GLFWwindow* window, int width, int height);
@@ -64,6 +65,12 @@ Camera playerCam;
 
 int workerCount = (std::thread::hardware_concurrency() <= 1 ? 1 : std::thread::hardware_concurrency()) - 1;
 
+void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+{
+    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+        (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+        type, severity, message);
+}
 
 void ChunkUpdate()
 {
@@ -110,11 +117,14 @@ int main(int argc, char* argv[]) {
     {
         std::cout << "Glad initialized succesfully\n";
     }
+
     // Set callbacks
     glfwSetFramebufferSizeCallback(myWin.getWindow(), viewportSizeChanged);
     glfwSetCursorPosCallback(myWin.getWindow(), mouseUpdate);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(MessageCallback, 0);
 
     float frame[] = {
         // positions        // texture Coords
@@ -142,25 +152,20 @@ int main(int argc, char* argv[]) {
 
     // create compute output texture
     GLuint outTexture;
-    glCreateTextures(GL_TEXTURE_2D, 1, &outTexture); //DSA maxing
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glCreateTextures(GL_TEXTURE_2D, 1, &outTexture);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1920, 1080, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTextureParameteri(outTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(outTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(outTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(outTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glTextureStorage2D(outTexture, 1, GL_RGBA32F, 1920, 1080);
+
     glBindImageTexture(0, outTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+    glBindTextureUnit(0, outTexture);
 
     Shader myShader = Shader("../../src/Shaders/vertex.glsl", "../../src/Shaders/fragment.glsl");
     Shader compute = Shader("../../src/Shaders/compute.glsl");
-
-    // Please ignore the 10/10 error handling
-    if (glGetError() != GL_NO_ERROR)
-    {
-        std::cerr << "AN ERROR HAS OCCURED SOMEWHERE!\n";
-    }
-
-    myShader.use();
 
     glfwSetInputMode(myWin.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -179,9 +184,6 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Starting chunk loading thread..." << std::endl;
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, outTexture);
-
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
     {
@@ -189,8 +191,11 @@ int main(int argc, char* argv[]) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        glClearColor(0.4f, 0.4f, 0.8f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         compute.use();
-        glDispatchCompute((unsigned int)1920 / 8, (unsigned int)1080 / 8, 1);
+        glDispatchCompute((unsigned int)ceil(1920 / 8), (unsigned int)ceil(1080 / 4), 1);
 
         // make sure writing to image has finished before read
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -199,8 +204,9 @@ int main(int argc, char* argv[]) {
 
         playerCam.Update();
 
-        glClearColor(0.4f, 0.4f, 0.8f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        compute.setMat4("InvView", glm::inverse(playerCam.lookat));
+        compute.setMat4("InvPerspective",glm::inverse(perspective));
+        compute.setVec3("camPos", playerCam.position);
 
         myShader.use();
 
@@ -259,6 +265,16 @@ void processInput(GLFWwindow* window)
         playerCam.position += playerCam.localUp * camSpeed;
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         playerCam.position -= playerCam.localUp * camSpeed;
+
+    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+    {
+        if (!wrFrm)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        else
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+           
+        wrFrm = !wrFrm;            
+    }
 
 }
 
