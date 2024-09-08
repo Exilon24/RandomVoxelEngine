@@ -14,7 +14,8 @@
 #include <vector>
 #include <unordered_map>
 #include <queue>
-#include <unordered_set >
+#include <unordered_set>
+#include <stack>
 
 #include <window.hpp>
 #include <cstdio>
@@ -23,10 +24,6 @@
 #include <chunk.hpp>
 #include <random>
 #include <iostream>
-
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 
 // Options
 // ----------------------------------------------
@@ -53,14 +50,6 @@ void processInput(GLFWwindow* window);
 void viewportSizeChanged(GLFWwindow* window, int width, int height);
 void mouseUpdate(GLFWwindow* window, double xpos, double ypos);
 
-std::unordered_map<glm::ivec3, std::vector<unsigned int>, vecKeyTrait, vecKeyTrait> chunks;
-std::unordered_set<glm::ivec3, vecKeyTrait, vecKeyTrait> processingChunks;
-std::queue<glm::ivec3> chunksToLoad;
-
-std::mutex loadChunkMutex;
-bool stopWork = false;
-std::condition_variable mutex_condition;
-
 Camera playerCam;
 
 int workerCount = (std::thread::hardware_concurrency() <= 1 ? 1 : std::thread::hardware_concurrency()) - 1;
@@ -70,33 +59,6 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
     fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
         (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
         type, severity, message);
-}
-
-void ChunkUpdate()
-{
-    while (true)
-    {
-        glm::ivec3 chunkToLoad;
-        {
-            std::unique_lock<std::mutex> lock(loadChunkMutex);
-            mutex_condition.wait(lock, []
-                {
-                    return !chunksToLoad.empty() || stopWork;
-                });
-
-            if (stopWork) return;
-            chunkToLoad = chunksToLoad.front();
-            chunksToLoad.pop();
-        }
-
-        std::vector<unsigned int> chunkInfo = loadChunk(chunkToLoad);
-
-        {
-            std::unique_lock<std::mutex> lock(loadChunkMutex);
-            chunks[chunkToLoad] = std::move(chunkInfo);
-            processingChunks.erase(processingChunks.find(chunkToLoad));
-        }
-    }
 }
 
 int main(int argc, char* argv[]) {
@@ -174,15 +136,35 @@ int main(int argc, char* argv[]) {
     glFrontFace(GL_CW);
 
     glm::mat4 perspective = glm::perspective(glm::radians(90.0f), (float)1920 / (float)1080, 0.01f, 1000.0f);
-    glm::mat4 model = glm::mat4(1.0);
 
     glm::vec3 lastCamVoxSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
 
-    model = glm::scale(model, glm::vec3(8));
-
-    int count = 0;
+    for (int x = -5; x <= 5; x++)
+    {
+        for (int z = -5; z <= 5; z++)
+        {
+            glm::ivec3 currentPos = glm::vec3(x, 0, z);
+            if (processingChunks.find(currentPos) == processingChunks.end())
+            {
+                {
+                    std::unique_lock<std::mutex> lock(loadChunkMutex);
+                    processingChunks.insert(currentPos);
+                    chunksToLoad.push(currentPos);
+                    currentPos.y = 1;
+                    chunksToLoad.push(currentPos);
+                    processingChunks.insert(currentPos);
+                }
+                mutex_condition.notify_one();
+                mutex_condition.notify_one();
+            }
+        }
+    }
 
     std::cout << "Starting chunk loading thread..." << std::endl;
+    std::vector<std::thread> workers;
+    workers.reserve(workerCount);
+    for (int i = 0; i < workerCount; i++)
+        workers.emplace_back(ChunkUpdate);
 
     std::cout << "Starting program loop...\n";
     while (!myWin.getWindowCloseState())
@@ -197,7 +179,6 @@ int main(int argc, char* argv[]) {
         compute.use();
         glDispatchCompute((unsigned int)ceil(1920 / 8), (unsigned int)ceil(1080 / 4), 1);
 
-        // make sure writing to image has finished before read
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         glm::vec3 camVoxelSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));       
@@ -207,6 +188,8 @@ int main(int argc, char* argv[]) {
         compute.setMat4("InvView", glm::inverse(playerCam.lookat));
         compute.setMat4("InvPerspective",glm::inverse(perspective));
         compute.setVec3("camPos", playerCam.position);
+
+        std::cout << chunk_data.size() << '\n';
 
         myShader.use();
 
@@ -221,6 +204,16 @@ int main(int argc, char* argv[]) {
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
     }
+
+    {
+        std::unique_lock<std::mutex> lock(loadChunkMutex);
+        stopWork = true;
+    }
+    mutex_condition.notify_all();
+    for (auto& worker : workers)
+        worker.join();
+
+    workers.clear();
 
     glfwTerminate();
     return 0;

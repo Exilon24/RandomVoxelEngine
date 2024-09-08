@@ -10,6 +10,10 @@
 #include<bitset>
 #include <perlin.hpp>
 
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
 struct vecKeyTrait
 {
 
@@ -42,15 +46,52 @@ struct Chunk {
 	uint32_t bitmask[32 * 32];
 };
 
-struct ChunkStore {
-	std::unique_ptr<Chunk> data;
-	GLuint gpuDataBuffer;
-};
-std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
-{
-	std::vector<unsigned int> voxels;
 
-	unsigned int buffer = 0;
+std::vector<Chunk> chunk_data;
+std::stack<unsigned int> free_chunks;
+std::unordered_map<glm::ivec3, uint32_t, vecKeyTrait, vecKeyTrait> chunkPositions;
+
+//Loading
+std::unordered_set<glm::ivec3, vecKeyTrait, vecKeyTrait> processingChunks;
+std::queue<glm::ivec3> chunksToLoad;
+
+// Threading
+std::mutex loadChunkMutex;
+bool stopWork = false;
+std::condition_variable mutex_condition;
+
+/// <summary>
+/// Allocate a new chunk to the chunkdata vector
+/// </summary>
+/// <returns>The index to the new chunk</returns>
+uint32_t AllocateChunk()
+{
+	size_t index;
+	if (free_chunks.empty())
+	{
+		index = chunk_data.size(); // Create a new chunk
+		chunk_data.emplace_back();
+	}
+	else
+	{
+		index = free_chunks.top();
+		free_chunks.pop();
+	}
+
+	return index;
+}
+
+void FreeChunkData(uint32_t index)
+{
+	chunk_data.erase(chunk_data.begin() + index);
+	free_chunks.push(index);
+}
+
+std::vector<uint32_t> loadChunk(glm::ivec3 chunkPosition)
+{
+	std::vector<uint32_t> voxels;
+
+	uint32_t buffer = 0;
 
 	for (int x = 0; x < 32; x++)
 	{
@@ -84,6 +125,39 @@ std::vector<unsigned int> loadChunk(glm::ivec3 chunkPosition)
 	}
 	
 	return std::move(voxels);
+}
+
+void ChunkUpdate()
+{
+	while (true)
+	{
+		glm::ivec3 chunkToLoad;
+		{
+			std::unique_lock<std::mutex> lock(loadChunkMutex);
+			mutex_condition.wait(lock, []
+				{
+					return !chunksToLoad.empty() || stopWork;
+				});
+
+			if (stopWork) return;
+			chunkToLoad = chunksToLoad.front();
+			chunksToLoad.pop();
+		}
+
+		std::vector<uint32_t> chunkInfo = loadChunk(chunkToLoad);
+
+		{
+			std::unique_lock<std::mutex> lock(loadChunkMutex);
+
+			// Load the chunk and it's position
+			Chunk loadedChnk;
+			std::copy(chunkInfo.begin(), chunkInfo.end(), loadedChnk.bitmask);
+			chunk_data.push_back(std::move(loadedChnk));
+			chunkPositions[chunkToLoad] = chunk_data.size();
+
+			processingChunks.erase(processingChunks.find(chunkToLoad));
+		}
+	}
 }
 
 #endif // !CHUNK_UTIL
