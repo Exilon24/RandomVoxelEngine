@@ -61,9 +61,11 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
         type, severity, message);
 }
 
+
 int main(int argc, char* argv[]) {
 
     std::cout << "WorkerCount: " << workerCount << '\n';
+
     // Create window
     Window myWin = Window(600, 620, "Awesome sauce");
     myWin.makeWindowContextCurrent();
@@ -189,8 +191,6 @@ int main(int argc, char* argv[]) {
         compute.setMat4("InvPerspective",glm::inverse(perspective));
         compute.setVec3("camPos", playerCam.position);
 
-        std::cout << chunk_data.size() << '\n';
-
         myShader.use();
 
         glBindVertexArray(VAO);
@@ -214,6 +214,11 @@ int main(int argc, char* argv[]) {
         worker.join();
 
     workers.clear();
+
+#ifdef DEBUG_VOXELGEN
+    chunkLog.close();
+#endif // 
+
 
     glfwTerminate();
     return 0;

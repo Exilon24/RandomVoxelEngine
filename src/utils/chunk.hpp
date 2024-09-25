@@ -5,14 +5,17 @@
 #include "glm/geometric.hpp"
 
 #include<shader.hpp>
-#include<vector>
-#include<iostream>
-#include<bitset>
 #include <perlin.hpp>
 
 #include <thread>
 #include <mutex>
+#include <vector>
+#include <iostream>
+#include <bitset>
+#include <fstream>
 #include <condition_variable>
+
+#define DEBUG_VOXELGEN
 
 struct vecKeyTrait
 {
@@ -60,6 +63,11 @@ std::mutex loadChunkMutex;
 bool stopWork = false;
 std::condition_variable mutex_condition;
 
+#ifdef DEBUG_VOXELGEN
+std::ofstream chunkLog("log.txt");
+#endif
+
+
 /// <summary>
 /// Allocate a new chunk to the chunkdata vector
 /// </summary>
@@ -70,7 +78,7 @@ uint32_t AllocateChunk()
 	if (free_chunks.empty())
 	{
 		index = chunk_data.size(); // Create a new chunk
-		chunk_data.emplace_back();
+		//chunk_data.emplace_back(); <------- No need. I insert later :)
 	}
 	else
 	{
@@ -151,9 +159,29 @@ void ChunkUpdate()
 
 			// Load the chunk and it's position
 			Chunk loadedChnk;
+
+			uint32_t allocatedChunk = AllocateChunk();
+
 			std::copy(chunkInfo.begin(), chunkInfo.end(), loadedChnk.bitmask);
-			chunk_data.push_back(std::move(loadedChnk));
-			chunkPositions[chunkToLoad] = chunk_data.size();
+
+			chunk_data.insert(chunk_data.begin() + allocatedChunk, std::move(loadedChnk));
+			chunkPositions[chunkToLoad] = allocatedChunk; // store the current chunks position to its index
+
+#ifdef DEBUG_VOXELGEN
+
+
+			int accum = 0;
+			for (auto& valu : loadedChnk.bitmask)
+			{
+				accum += valu;
+			}
+			chunkLog << "AllocatedSlot: " << allocatedChunk << '\n';
+			chunkLog << "LoadedValue: " << std::to_string(accum) << '\n';
+			chunkLog << "ChunkPosition: " << chunkToLoad.x << ", " << chunkToLoad.y << ", " << chunkToLoad.z << '\n';
+
+			chunkLog << "\n";
+
+#endif // DEBUG_VOXELGEN
 
 			processingChunks.erase(processingChunks.find(chunkToLoad));
 		}
