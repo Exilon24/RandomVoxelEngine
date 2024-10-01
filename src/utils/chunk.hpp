@@ -35,12 +35,18 @@ struct vecKeyTrait
 	}
 };
 
-struct TreeInfo
+struct AABB
 {
-	static constexpr uint16_t maxLevel = 6;
+	glm::vec3 min;
+	glm::vec3 max;
 };
 
-struct AccelerationQuadtree
+struct TreeInfo
+{
+	uint16_t maxLevel = 6;
+};
+
+struct Acceleration64tree
 {
 	uint32_t children[4 * 4 * 4];
 };
@@ -49,7 +55,11 @@ struct Chunk {
 	uint32_t bitmask[32 * 32];
 };
 
+//Tree
+std::vector<Acceleration64tree> accel;
+TreeInfo accelTreeInfo;
 
+// Chunkdata
 std::vector<Chunk> chunk_data;
 std::stack<unsigned int> free_chunks;
 std::unordered_map<glm::ivec3, uint32_t, vecKeyTrait, vecKeyTrait> chunkPositions;
@@ -65,6 +75,7 @@ std::condition_variable mutex_condition;
 
 #ifdef DEBUG_VOXELGEN
 std::ofstream chunkLog("log.txt");
+std::ofstream treeLog("treeLog.txt");
 #endif
 
 
@@ -78,7 +89,6 @@ uint32_t AllocateChunk()
 	if (free_chunks.empty())
 	{
 		index = chunk_data.size(); // Create a new chunk
-		//chunk_data.emplace_back(); <------- No need. I insert later :)
 	}
 	else
 	{
@@ -135,6 +145,58 @@ std::vector<uint32_t> loadChunk(glm::ivec3 chunkPosition)
 	return std::move(voxels);
 }
 
+AABB calculateChunkExtents()
+{
+	std::unique_lock<std::mutex> lock(loadChunkMutex);
+	if (chunkPositions.size() < 1)
+	{
+		std::cerr << "WHAT THE FUCK BRO";
+
+	}
+
+	AABB extents;
+	auto it = chunkPositions.begin();
+	extents.min = glm::vec3(it->first);
+	extents.max = glm::vec3(it->first);
+	it++;
+
+	for (; it != chunkPositions.end(); it++)
+	{
+		extents.min = glm::min(glm::vec3(it->first), extents.min); 
+		extents.max = glm::max(glm::vec3(it->first), extents.max);
+	}
+
+	return extents;
+}
+
+int ceil_div(float a, float b)
+{
+	return 1 + ((a - 1) / b);
+}
+
+void buildTree(int lvl)
+{
+	if (chunkPositions.size() < 1 || chunk_data.size() < 1) return;
+
+	AABB extents = calculateChunkExtents();
+	glm::vec3 size = extents.max - extents.min; // bounding volume size
+	float maxSize = std::max(std::max(size.x, size.y), size.z); // bounding cube size
+	float mssb = std::ceil(std::log2f(maxSize));
+	int maxLevels = ceil_div(mssb, 2);
+
+	accelTreeInfo.maxLevel = maxLevels;
+
+#ifdef DEBUG_VOXELGEN
+	treeLog << "Building tree:\nMin: "
+		<< extents.min.x << " " << extents.min.y << " " << extents.min.z << "\nMax: "
+		<< extents.max.x << " " << extents.max.y << " " << extents.max.z << "\n";
+	treeLog << "CubicSize: " << maxLevels << '\n';
+	treeLog << "\n";
+#endif
+
+	//Build tree
+}
+
 void ChunkUpdate()
 {
 	while (true)
@@ -178,6 +240,7 @@ void ChunkUpdate()
 			chunkLog << "AllocatedSlot: " << allocatedChunk << '\n';
 			chunkLog << "LoadedValue: " << std::to_string(accum) << '\n';
 			chunkLog << "ChunkPosition: " << chunkToLoad.x << ", " << chunkToLoad.y << ", " << chunkToLoad.z << '\n';
+			chunkLog << "ChunkPositionContainerSize: " << chunkPositions.size() << '\n';
 
 			chunkLog << "\n";
 

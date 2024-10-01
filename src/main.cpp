@@ -201,6 +201,8 @@ int main(int argc, char* argv[]) {
 
         processInput(myWin.getWindow());
 
+        buildTree(1);
+
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
     }
@@ -217,6 +219,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef DEBUG_VOXELGEN
     chunkLog.close();
+    treeLog.close();
 #endif // 
 
 
