@@ -169,7 +169,7 @@ AABB calculateChunkExtents()
 	return extents;
 }
 
-int ceil_div(float a, float b)
+int ceil_div(int a, int b)
 {
 	return 1 + ((a - 1) / b);
 }
@@ -179,9 +179,9 @@ void buildTree(int lvl)
 	if (chunkPositions.size() < 1 || chunk_data.size() < 1) return;
 
 	AABB extents = calculateChunkExtents();
-	glm::vec3 size = extents.max - extents.min; // bounding volume size
-	float maxSize = std::max(std::max(size.x, size.y), size.z); // bounding cube size
-	float mssb = std::ceil(std::log2f(maxSize));
+	glm::ivec3 size = glm::ivec3(extents.max - extents.min); // bounding volume size
+	int maxSize = std::max(std::max(size.x, size.y), size.z); // bounding cube size
+	int mssb = std::ceil(std::log2f(maxSize));
 	int maxLevels = ceil_div(mssb, 2);
 
 	accelTreeInfo.maxLevel = maxLevels;
@@ -190,7 +190,7 @@ void buildTree(int lvl)
 	treeLog << "Building tree:\nMin: "
 		<< extents.min.x << " " << extents.min.y << " " << extents.min.z << "\nMax: "
 		<< extents.max.x << " " << extents.max.y << " " << extents.max.z << "\n";
-	treeLog << "CubicSize: " << maxLevels << '\n';
+	treeLog << "Max Level: " << maxLevels << '\n';
 	treeLog << "\n";
 #endif
 
