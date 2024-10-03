@@ -224,6 +224,8 @@ void buildTree()
 	treeLog << "\n";
 #endif
 
+	accel.emplace_back(); //add rootNode
+
 	uint32_t chunk_index = 0;
 	for (auto& chunk : chunk_data) {
 
@@ -262,10 +264,10 @@ void buildTree()
 				accel.emplace_back();
 			}
 
-			uint32_t node_index = child_index;
+			node_index = child_index;
 
-			uint32_t node_size_log2 = level * 2;
-			uint32_t node_size = 1 << level;
+			node_size_log2 = level * 2;
+			node_size = 1 << level;
 		}
 
 		// What is this section down here for?
