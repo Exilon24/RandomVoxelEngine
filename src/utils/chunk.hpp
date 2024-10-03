@@ -48,11 +48,11 @@ struct TreeInfo
 
 struct Acceleration64tree
 {
-	uint32_t children[4 * 4 * 4];
+	uint32_t children[4 * 4 * 4] = {0};
 };
 
 struct Chunk {
-	uint32_t bitmask[32 * 32];
+	uint32_t bitmask[32 * 32] = {0};
 };
 
 //Tree
