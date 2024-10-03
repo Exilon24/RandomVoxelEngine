@@ -141,9 +141,9 @@ int main(int argc, char* argv[]) {
 
     glm::vec3 lastCamVoxSpace = glm::vec3((int)(playerCam.position.x / 16), 0, (int)(playerCam.position.z / 16));
 
-    for (int x = -5; x <= 5; x++)
+    for (int x = -33; x <= 32; x++)
     {
-        for (int z = -5; z <= 5; z++)
+        for (int z = -33; z <= 32; z++)
         {
             glm::ivec3 currentPos = glm::vec3(x, 0, z);
             if (processingChunks.find(currentPos) == processingChunks.end())
@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
 
         processInput(myWin.getWindow());
 
-        buildTree(1);
+        buildTree();
 
         glfwSwapBuffers(myWin.getWindow());
         glfwPollEvents();
