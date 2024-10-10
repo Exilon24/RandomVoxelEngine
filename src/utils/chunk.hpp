@@ -241,15 +241,15 @@ void buildTree()
 		for (int level = maxLevels; level > 0; --level) {
 
 			// 0000	0000
-			uint8_t child_position;
+			uint8_t child_position = 0;
 
 			uint8_t childPositionX = (chunk_pos.x % node_size) / (node_size / 4); //  Binary 0 - 3 value 
 			uint8_t childPositionZ = (chunk_pos.y % node_size) / (node_size / 4);
 			uint8_t childPositionY = (chunk_pos.z % node_size) / (node_size / 4);
 
 			child_position = child_position | childPositionZ;
-			child_position = (child_Position << 1) | childPositionY;
-			child_position = (child_Position << 1) | childPositionX;
+			child_position = (child_position << 2) | childPositionY;
+			child_position = (child_position << 4) | childPositionX;
 
 			// 00zz yyxx
 
@@ -265,19 +265,19 @@ void buildTree()
 
 			node_index = child_index;
 			
-			node_size = node_size >> 1; // 1 << level
+			node_size = node_size >> 2; // 1 << level
 		}
 
 		// Leaf node
-		uint8_t child_position;
+		uint8_t child_position = 0;
 
 		uint8_t childPositionX = (chunk_pos.x % node_size) / (node_size / 4); //  Binary 0 - 3 value 
-		uint8_t childPositionZ = (chunk_pos.Y % node_size) / (node_size / 4);
+		uint8_t childPositionZ = (chunk_pos.y % node_size) / (node_size / 4);
 		uint8_t childPositionY = (chunk_pos.z % node_size) / (node_size / 4);
 
 		child_position = child_position | childPositionZ;
-		child_position = (child_Position << 1) | childPositionY;
-		child_position = (child_Position << 1) | childPositionX;
+		child_position = (child_position << 2) | childPositionY;
+		child_position = (child_position << 4) | childPositionX;
 
 		accel[node_index].children[child_position] = chunk_index;
 		chunk_index++;
