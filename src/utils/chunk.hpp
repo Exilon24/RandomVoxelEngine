@@ -209,10 +209,10 @@ void buildTree()
 	if (chunkPositions.size() < 1 || chunk_data.size() < 1) return;
 
 	AABB extents = calculateChunkExtents();
-	glm::ivec3 size = glm::ivec3(extents.max - extents.min); // bounding volume size
+	glm::ivec3 size = glm::ivec3(extents.max - extents.min); // total bounding volume size
 	int maxSize = std::max(std::max(size.x, size.y), size.z); // bounding cube size
-	int mssb = std::ceil(std::log2(maxSize));
-	int maxLevels = ceil_div(mssb, 2);
+	int mssb = std::ceil(std::log2(maxSize)); // largest set bit == smallest possible cubic size
+	int maxLevels = ceil_div(mssb, 2); 
 
 	accelTreeInfo.maxLevel = maxLevels;
 
@@ -232,12 +232,10 @@ void buildTree()
 		uint32_t node_index = 0;
 
 		// Get half root node size
-		uint32_t node_size_log2 = maxLevels * 2; // what is this?
-		uint32_t node_size = 1 << node_size_log2;
-		uint32_t root_size_half = 1 << (node_size_log2 - 1);
+		uint32_t node_size = std::pow(2, mssb); // 1 << mssb
+		uint32_t root_size_half = node_size / 2; // 1 << (mssb-1)
 
-
-		// Get chunk position
+		// Get relative chunk position
 		glm::ivec3 chunk_pos = getChunkPosition(chunk_index) + glm::vec3(root_size_half);
 
 		for (int level = maxLevels; level > 0; --level) {
@@ -245,14 +243,15 @@ void buildTree()
 			// 0000	0000
 			uint8_t child_position;
 
-			uint32_t position_mask = (node_size - 1) & ((1 << (node_size_log2 - 2)) - 1); // what the fuck?
+			uint8_t childPositionX = (chunk_pos.x % node_size) / (node_size / 4); //  Binary 0 - 3 value 
+			uint8_t childPositionZ = (chunk_pos.y % node_size) / (node_size / 4);
+			uint8_t childPositionY = (chunk_pos.z % node_size) / (node_size / 4);
 
-			child_position = (position_mask & chunk_pos.x) << 0; // 0000 00xx
-			child_position |= (position_mask & chunk_pos.y) << 2; // 0000 yy00
-			child_position |= (position_mask & chunk_pos.z) << 4; // 00zz 0000
+			child_position = child_position | childPositionZ;
+			child_position = (child_Position << 1) | childPositionY;
+			child_position = (child_Position << 1) | childPositionX;
 
 			// 00zz yyxx
-			// 2 bits per axis???
 
 			Acceleration64tree& parent = accel[node_index];
 			uint32_t child_index = parent.children[child_position]; 
@@ -260,22 +259,25 @@ void buildTree()
 			// Check if child exists
 			if (!child_index) {
 				child_index = accel.size();
-				accel[node_index].children[child_position] = child_index;
+				parent.children[child_position] = child_index;
 				accel.emplace_back();
 			}
 
 			node_index = child_index;
-
-			node_size_log2 = level * 2;
-			node_size = 1 << level;
+			
+			node_size = node_size >> 1; // 1 << level
 		}
 
-		// What is this section down here for?
+		// Leaf node
 		uint8_t child_position;
-		uint32_t position_mask = (node_size - 1) & ((1 << (node_size_log2 - 2)) - 1);
-		child_position = (position_mask & chunk_pos.x) << 0;
-		child_position |= (position_mask & chunk_pos.y) << 2;
-		child_position |= (position_mask & chunk_pos.z) << 4;
+
+		uint8_t childPositionX = (chunk_pos.x % node_size) / (node_size / 4); //  Binary 0 - 3 value 
+		uint8_t childPositionZ = (chunk_pos.Y % node_size) / (node_size / 4);
+		uint8_t childPositionY = (chunk_pos.z % node_size) / (node_size / 4);
+
+		child_position = child_position | childPositionZ;
+		child_position = (child_Position << 1) | childPositionY;
+		child_position = (child_Position << 1) | childPositionX;
 
 		accel[node_index].children[child_position] = chunk_index;
 		chunk_index++;
