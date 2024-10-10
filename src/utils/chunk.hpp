@@ -195,13 +195,15 @@ glm::vec3 getChunkPosition(int currentChunk)
 {
 	for (auto it = chunkPositions.begin(); it != chunkPositions.end(); it++)
 	{
+
 		if (it->second == currentChunk)
 		{
 			return it->first;
 		}
-
-		throw std::invalid_argument("COULDN'T FIND CHUNK");
 	}
+
+
+	throw std::invalid_argument("COULDN'T FIND CHUNK");
 }
 
 void buildTree()
@@ -232,16 +234,18 @@ void buildTree()
 		uint32_t node_index = 0;
 
 		// Get half root node size
-		uint32_t node_size = std::pow(2, mssb); // 1 << mssb
+		uint32_t node_size = std::pow(4, mssb); // 1 << mssb
 		uint32_t root_size_half = node_size / 2; // 1 << (mssb-1)
 
-		// Get relative chunk position
+		// Relative chunk position
 		glm::ivec3 chunk_pos = getChunkPosition(chunk_index) + glm::vec3(root_size_half);
 
 		for (int level = maxLevels; level > 0; --level) {
 
 			// 0000	0000
 			uint8_t child_position = 0;
+
+			//std::cout << "Denominator: " << (node_size / 4) << "\n";
 
 			uint8_t childPositionX = (chunk_pos.x % node_size) / (node_size / 4); //  Binary 0 - 3 value 
 			uint8_t childPositionZ = (chunk_pos.y % node_size) / (node_size / 4);
