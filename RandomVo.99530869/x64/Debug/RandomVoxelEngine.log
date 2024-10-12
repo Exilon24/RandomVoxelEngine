@@ -2,27 +2,14 @@
 C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(99,9): warning C4267: 'return': conversion from 'size_t' to 'uint32_t', possible loss of data
   (compiling source file 'src/main.cpp')
   
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(187,35): warning C4267: 'argument': conversion from 'size_t' to '_Ty', possible loss of data
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(187,35): warning C4267:         with
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(187,35): warning C4267:         [
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(187,35): warning C4267:             _Ty=uint32_t
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(187,35): warning C4267:         ]
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(181,35): warning C4267: 'argument': conversion from 'size_t' to '_Ty', possible loss of data
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(181,35): warning C4267:         with
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(181,35): warning C4267:         [
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(181,35): warning C4267:             _Ty=uint32_t
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(181,35): warning C4267:         ]
   (compiling source file 'src/main.cpp')
   
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(216,11): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-  (compiling source file 'src/main.cpp')
-  
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(237,22): warning C4244: 'initializing': conversion from 'double' to 'uint32_t', possible loss of data
-  (compiling source file 'src/main.cpp')
-  
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(241,68): warning C4244: 'argument': conversion from 'uint32_t' to 'T', possible loss of data
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(241,68): warning C4244:         with
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(241,68): warning C4244:         [
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(241,68): warning C4244:             T=float
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(241,68): warning C4244:         ]
-  (compiling source file 'src/main.cpp')
-  
-C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(265,29): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Users\pasha\source\repos\RandomVoxelEngine\src\utils\chunk.hpp(242,28): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
   (compiling source file 'src/main.cpp')
   
 C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(37,17): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
@@ -33,4 +20,5 @@ C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(294,13): warning C424
 C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(296,31): warning C4305: 'initializing': truncation from 'double' to 'float'
 C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(304,17): warning C4305: '=': truncation from 'double' to 'float'
 C:\Users\pasha\source\repos\RandomVoxelEngine\src\main.cpp(306,18): warning C4305: '=': truncation from 'double' to 'float'
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
   RandomVoxelEngine.vcxproj -> C:\Users\pasha\source\repos\RandomVoxelEngine\x64\Debug\RandomVoxelEngine.exe

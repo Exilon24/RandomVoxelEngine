@@ -37,8 +37,8 @@ struct vecKeyTrait
 
 struct AABB
 {
-	glm::vec3 min;
-	glm::vec3 max;
+	glm::ivec3 min;
+	glm::ivec3 max;
 };
 
 struct TreeInfo
@@ -145,25 +145,19 @@ std::vector<uint32_t> loadChunk(glm::ivec3 chunkPosition)
 	return std::move(voxels);
 }
 
-AABB calculateChunkExtents()
-{
-	std::unique_lock<std::mutex> lock(loadChunkMutex);
-	if (chunkPositions.size() < 1)
-	{
+AABB calculateChunkExtents() {
+	if (chunkPositions.empty())
 		std::cerr << "WHAT THE FUCK BRO";
 
-	}
-
-	AABB extents;
+	AABB extents{};
 	auto it = chunkPositions.begin();
-	extents.min = glm::vec3(it->first);
-	extents.max = glm::vec3(it->first);
+	extents.min = it->first;
+	extents.max = it->first;
 	it++;
 
-	for (; it != chunkPositions.end(); it++)
-	{
-		extents.min = glm::min(glm::vec3(it->first), extents.min); 
-		extents.max = glm::max(glm::vec3(it->first), extents.max);
+	for (; it != chunkPositions.end(); it++) {
+		extents.min = glm::min(it->first, extents.min);
+		extents.max = glm::max(it->first, extents.max);
 	}
 
 	return extents;
@@ -191,30 +185,18 @@ void buildNode(Acceleration64tree node, int level)
 	}
 }
 
-glm::vec3 getChunkPosition(int currentChunk)
-{
-	for (auto it = chunkPositions.begin(); it != chunkPositions.end(); it++)
-	{
+void buildTree() {
+	std::unique_lock<std::mutex> lock(loadChunkMutex);  // This may take a long time to release,
+	// maybe using the condition variable would be better
 
-		if (it->second == currentChunk)
-		{
-			return it->first;
-		}
-	}
-
-
-	throw std::invalid_argument("COULDN'T FIND CHUNK");
-}
-
-void buildTree()
-{
-	if (chunkPositions.size() < 1 || chunk_data.size() < 1) return;
+	if (chunkPositions.empty()) return;
 
 	AABB extents = calculateChunkExtents();
-	glm::ivec3 size = glm::ivec3(extents.max - extents.min); // total bounding volume size
+	glm::ivec3 size = extents.max - extents.min; // total bounding volume size
+
 	int maxSize = std::max(std::max(size.x, size.y), size.z); // bounding cube size
-	int mssb = std::ceil(std::log2(maxSize)); // largest set bit == smallest possible cubic size
-	int maxLevels = ceil_div(mssb, 2); 
+	float mssb = std::ceil(std::log2f(static_cast<float>(maxSize))); // largest set bit == smallest possible cubic size
+	int maxLevels = ceil_div(static_cast<int>(mssb), 2);
 
 	accelTreeInfo.maxLevel = maxLevels;
 
@@ -226,65 +208,55 @@ void buildTree()
 	treeLog << "\n";
 #endif
 
-	accel.emplace_back(); //add rootNode
+	accel.clear();
+	accel.emplace_back();
 
-	uint32_t chunk_index = 0;
-	for (auto& chunk : chunk_data) {
-
+	for (auto& pair : chunkPositions) {
 		uint32_t node_index = 0;
 
-		// Get half root node size
-		uint32_t node_size = std::pow(4, mssb); // 1 << mssb
-		uint32_t root_size_half = node_size / 2; // 1 << (mssb-1)
-
 		// Relative chunk position
-		glm::ivec3 chunk_pos = getChunkPosition(chunk_index) + glm::vec3(root_size_half);
+		glm::ivec3 chunk_pos = pair.first - extents.min;
 
-		for (int level = maxLevels; level > 0; --level) {
+		for (int level = (maxLevels - 1) * 2; level > 0; level -= 2) {
 
-			// 0000	0000
-			uint8_t child_position = 0;
+			// 00000000
+			uint8_t child_position;
 
 			//std::cout << "Denominator: " << (node_size / 4) << "\n";
 
-			uint8_t childPositionX = (chunk_pos.x % node_size) / (node_size / 4); //  Binary 0 - 3 value 
-			uint8_t childPositionZ = (chunk_pos.y % node_size) / (node_size / 4);
-			uint8_t childPositionY = (chunk_pos.z % node_size) / (node_size / 4);
+			uint8_t childPositionX = (chunk_pos.x >> level) & 0x3; //  Binary 0 - 3 value
+			uint8_t childPositionZ = (chunk_pos.y >> level) & 0x3;
+			uint8_t childPositionY = (chunk_pos.z >> level) & 0x3;
 
-			child_position = child_position | childPositionZ;
-			child_position = (child_position << 2) | childPositionY;
-			child_position = (child_position << 4) | childPositionX;
+			child_position = childPositionX;
+			child_position |= childPositionY << 2;
+			child_position |= childPositionZ << 4;
 
 			// 00zz yyxx
 
 			Acceleration64tree& parent = accel[node_index];
-			uint32_t child_index = parent.children[child_position]; 
+			node_index = parent.children[child_position];
 
-			// Check if child exists
-			if (!child_index) {
-				child_index = accel.size();
-				parent.children[child_position] = child_index;
+			// Check if a child exists
+			if (!node_index) {
+				node_index = accel.size();
+				parent.children[child_position] = node_index;
 				accel.emplace_back();
 			}
-
-			node_index = child_index;
-			
-			node_size = node_size >> 2; // 1 << level
 		}
 
+
+		uint8_t childPositionX = chunk_pos.x & 0x3; //  Binary 0 - 3 value
+		uint8_t childPositionZ = chunk_pos.y & 0x3;
+		uint8_t childPositionY = chunk_pos.z & 0x3;
+
 		// Leaf node
-		uint8_t child_position = 0;
+		uint8_t child_position;
+		child_position = childPositionX;
+		child_position |= childPositionY << 2;
+		child_position |= childPositionZ << 4;
 
-		uint8_t childPositionX = (chunk_pos.x % node_size) / (node_size / 4); //  Binary 0 - 3 value 
-		uint8_t childPositionZ = (chunk_pos.y % node_size) / (node_size / 4);
-		uint8_t childPositionY = (chunk_pos.z % node_size) / (node_size / 4);
-
-		child_position = child_position | childPositionZ;
-		child_position = (child_position << 2) | childPositionY;
-		child_position = (child_position << 4) | childPositionX;
-
-		accel[node_index].children[child_position] = chunk_index;
-		chunk_index++;
+		accel[node_index].children[child_position] = pair.second;
 	}
 }
 
