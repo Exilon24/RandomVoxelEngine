@@ -3,6 +3,11 @@
 layout (local_size_x = 8, local_size_y = 4, local_size_z = 1)  in;
 layout(rgba32f, binding = 0) uniform image2D colorbuffer;
 
+layout(std430, binding = 1) buffer accelBuffer
+{
+    int accelData[];
+};
+
 uniform mat4 InvView;
 uniform mat4 InvPerspective;
 uniform vec3 camPos;

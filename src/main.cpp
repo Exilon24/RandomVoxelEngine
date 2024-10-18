@@ -114,6 +114,12 @@ int main(int argc, char* argv[]) {
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
 
+    // ConfigAccelTree buffers
+    glCreateBuffers(1, &accelTreeInfo.chunkDataBuffer);
+    glCreateBuffers(1, &accelTreeInfo.accelTreeBuffer);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, accelTreeInfo.accelTreeBuffer);
+
     // create compute output texture
     GLuint outTexture;
     glCreateTextures(GL_TEXTURE_2D, 1, &outTexture);

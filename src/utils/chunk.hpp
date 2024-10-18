@@ -44,6 +44,8 @@ struct AABB
 struct TreeInfo
 {
 	uint16_t maxLevel = 6;
+	GLuint chunkDataBuffer;
+	GLuint accelTreeBuffer;
 };
 
 struct Acceleration64tree
@@ -54,6 +56,9 @@ struct Acceleration64tree
 struct Chunk {
 	uint32_t bitmask[32 * 32] = {0};
 };
+
+int lastAccelSize = 0;
+int lastChunkSize = 0;
 
 //Tree
 std::vector<Acceleration64tree> accel;
@@ -258,6 +263,16 @@ void buildTree() {
 
 		accel[node_index].children[child_position] = pair.second;
 	}
+
+	if (lastAccelSize != accel.capacity())
+	{
+		glNamedBufferData(accelTreeInfo.accelTreeBuffer, accel.capacity() * sizeof(Acceleration64tree), nullptr, GL_READ_WRITE);
+		glNamedBufferSubData(accelTreeInfo.accelTreeBuffer, 0, accel.size() * sizeof(Acceleration64tree), accel.data());
+	}
+	else
+		glNamedBufferSubData(accelTreeInfo.accelTreeBuffer, 0,  accel.size() * sizeof(Acceleration64tree), accel.data());
+
+	lastAccelSize = accel.capacity();
 }
 
 void ChunkUpdate()
