@@ -266,7 +266,7 @@ void buildTree() {
 
 	if (lastAccelSize != accel.capacity())
 	{
-		glNamedBufferData(accelTreeInfo.accelTreeBuffer, accel.capacity() * sizeof(Acceleration64tree), nullptr, GL_READ_WRITE);
+		glNamedBufferData(accelTreeInfo.accelTreeBuffer, accel.capacity() * sizeof(Acceleration64tree), nullptr, GL_STATIC_DRAW);
 		glNamedBufferSubData(accelTreeInfo.accelTreeBuffer, 0, accel.size() * sizeof(Acceleration64tree), accel.data());
 	}
 	else
@@ -323,6 +323,19 @@ void ChunkUpdate()
 			chunkLog << "\n";
 
 #endif // DEBUG_VOXELGEN
+
+			// Send chunks to buffer
+			if (chunk_data.capacity() != lastChunkSize)
+			{
+				glNamedBufferData(accelTreeInfo.chunkDataBuffer, chunk_data.capacity() * sizeof(Chunk), nullptr, GL_STATIC_DRAW);
+				glNamedBufferSubData(accelTreeInfo.chunkDataBuffer, 0, chunk_data.size() * sizeof(Chunk), chunk_data.data());
+			}
+			else
+			{
+				glNamedBufferSubData(accelTreeInfo.chunkDataBuffer, 0, chunk_data.size() * sizeof(Chunk), chunk_data.data());
+			}
+
+			lastChunkSize = chunk_data.capacity();
 
 			processingChunks.erase(processingChunks.find(chunkToLoad));
 		}

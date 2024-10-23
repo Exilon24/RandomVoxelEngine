@@ -5,7 +5,12 @@ layout(rgba32f, binding = 0) uniform image2D colorbuffer;
 
 layout(std430, binding = 1) buffer accelBuffer
 {
-    int accelData[];
+    uint accelData[];
+};
+
+layout(std430, binding = 2) buffer chunkBuffer
+{
+    uint chunkData[];
 };
 
 uniform mat4 InvView;

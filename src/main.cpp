@@ -119,6 +119,7 @@ int main(int argc, char* argv[]) {
     glCreateBuffers(1, &accelTreeInfo.accelTreeBuffer);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, accelTreeInfo.accelTreeBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, accelTreeInfo.chunkDataBuffer);
 
     // create compute output texture
     GLuint outTexture;
