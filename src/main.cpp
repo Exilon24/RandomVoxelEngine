@@ -194,6 +194,10 @@ int main(int argc, char* argv[]) {
 
         playerCam.Update();
 
+        UpdateChunkBuffer();
+
+        lastChunkSize = chunk_data.capacity();
+
         compute.setMat4("InvView", glm::inverse(playerCam.lookat));
         compute.setMat4("InvPerspective",glm::inverse(perspective));
         compute.setVec3("camPos", playerCam.position);

@@ -307,38 +307,25 @@ void ChunkUpdate()
 			chunk_data.insert(chunk_data.begin() + allocatedChunk, std::move(loadedChnk));
 			chunkPositions[chunkToLoad] = allocatedChunk; // store the current chunks position to its index
 
-#ifdef DEBUG_VOXELGEN
-
-
-			int accum = 0;
-			for (auto& valu : loadedChnk.bitmask)
-			{
-				accum += valu;
-			}
-			chunkLog << "AllocatedSlot: " << allocatedChunk << '\n';
-			chunkLog << "LoadedValue: " << std::to_string(accum) << '\n';
-			chunkLog << "ChunkPosition: " << chunkToLoad.x << ", " << chunkToLoad.y << ", " << chunkToLoad.z << '\n';
-			chunkLog << "ChunkPositionContainerSize: " << chunkPositions.size() << '\n';
-
-			chunkLog << "\n";
-
-#endif // DEBUG_VOXELGEN
-
 			// Send chunks to buffer
-			if (chunk_data.capacity() != lastChunkSize)
-			{
-				glNamedBufferData(accelTreeInfo.chunkDataBuffer, chunk_data.capacity() * sizeof(Chunk), nullptr, GL_STATIC_DRAW);
-				glNamedBufferSubData(accelTreeInfo.chunkDataBuffer, 0, chunk_data.size() * sizeof(Chunk), chunk_data.data());
-			}
-			else
-			{
-				glNamedBufferSubData(accelTreeInfo.chunkDataBuffer, 0, chunk_data.size() * sizeof(Chunk), chunk_data.data());
-			}
 
-			lastChunkSize = chunk_data.capacity();
+			std::cout << chunk_data.size() * sizeof(Chunk) << '\n';
 
 			processingChunks.erase(processingChunks.find(chunkToLoad));
 		}
+	}
+}
+
+void UpdateChunkBuffer()
+{
+	if (chunk_data.capacity() != lastChunkSize)
+	{
+		glNamedBufferData(accelTreeInfo.chunkDataBuffer, chunk_data.capacity() * sizeof(Chunk), nullptr, GL_STATIC_DRAW);
+		glNamedBufferSubData(accelTreeInfo.chunkDataBuffer, 0, chunk_data.size() * sizeof(Chunk), chunk_data.data());
+	}
+	else
+	{
+		glNamedBufferSubData(accelTreeInfo.chunkDataBuffer, 0, chunk_data.size() * sizeof(Chunk), chunk_data.data());
 	}
 }
 
