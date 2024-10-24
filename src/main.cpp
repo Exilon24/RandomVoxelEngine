@@ -52,7 +52,7 @@ void mouseUpdate(GLFWwindow* window, double xpos, double ypos);
 
 Camera playerCam;
 
-int workerCount = (std::thread::hardware_concurrency() <= 1 ? 1 : std::thread::hardware_concurrency()) - 1;
+int workerCount = (std::thread::hardware_concurrency() <= 1 ? 1 : std::thread::hardware_concurrency() - 1);
 
 void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
